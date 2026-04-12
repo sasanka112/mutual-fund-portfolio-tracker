@@ -1,0 +1,6 @@
+PS C:\Users\Sasanka_Talukder\OneDrive - Dell Technologies\Documents\GitHub\windsurf\mutual-fund-portfolio-tracker> node server.js
+Server running at http://localhost:3000
+
+
+http://localhost:3000/compare.html
+

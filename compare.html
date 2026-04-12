@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mutual Fund Portfolio Tracker - NAV Comparison</title>
+  <meta name="theme-color" content="#0b1021">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="shell header">
+    <div class="logo">Mutual Fund Portfolio Tracker</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="compare.html">NAV Comparison</a>
+      <a href="update.html">Update Holdings</a>
+    </nav>
+    <button class="ghost" id="theme-toggle" aria-label="Toggle theme">🌞</button>
+  </header>
+
+  <main>
+    <section class="shell hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Compare NAVs</p>
+        <h1>See how your funds moved over 7d, 14d, and 30d.</h1>
+        <p class="lede">We pull AMFI history for these ranges and show per-scheme deltas so you can spot trends fast.</p>
+        <div class="actions compare-actions">
+          <button class="primary" id="compare-btn">Refresh ranges</button>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="card-header">
+          <span class="pill">History snapshot</span>
+          <span class="status" id="compare-status">● idle</span>
+        </div>
+        <div class="card-body" id="live-status">
+          Choose a date and hit compare.
+        </div>
+        <div class="card-footer">
+          <span id="last-refresh">Last refresh: —</span>
+          <span class="spark">✦</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell insights" id="insights">
+      <div class="insight-grid">
+        <article class="insight-card">
+          <p class="muted">Schemes compared</p>
+          <h3 id="total-schemes">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Avg 30d change</p>
+          <h3 id="avg-change">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Top 7d mover</p>
+          <h3 id="top-mover">—</h3>
+          <span class="muted" id="top-mover-name"></span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Biggest 30d drop</p>
+          <h3 id="bottom-mover">—</h3>
+          <span class="muted" id="bottom-mover-name"></span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">7d gainers</p>
+          <h3 id="count-7d-gainers">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">30d gainers</p>
+          <h3 id="count-30d-gainers">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">30d losers</p>
+          <h3 id="count-30d-losers">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Median 30d change</p>
+          <h3 id="median-30d">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Portfolio 1d move</p>
+          <h3 id="portfolio-1d-value">—</h3>
+          <span class="muted" id="portfolio-1d-pct">—</span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Portfolio 7d move</p>
+          <h3 id="portfolio-7d-value">—</h3>
+          <span class="muted" id="portfolio-7d-pct">—</span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Portfolio 14d move</p>
+          <h3 id="portfolio-14d-value">—</h3>
+          <span class="muted" id="portfolio-14d-pct">—</span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Portfolio 30d move</p>
+          <h3 id="portfolio-30d-value">—</h3>
+          <span class="muted" id="portfolio-30d-pct">—</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell funds" id="funds">
+      <div class="section-head">
+        <p class="eyebrow">Latest NAV and holdings</p>
+        <h2>Comparison vs 7d, 14d, 30d.</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-sort-key="schemeName">Scheme</th>
+              <th class="numeric sortable" data-sort-key="units">Units</th>
+              <th class="numeric sortable" data-sort-key="todayNav">NAV (today)</th>
+              <th class="numeric sortable" data-sort-key="nav7">NAV (7d)</th>
+              <th class="numeric sortable" data-sort-key="delta7Pct">Δ7d %</th>
+              <th class="numeric sortable" data-sort-key="nav14">NAV (14d)</th>
+              <th class="numeric sortable" data-sort-key="delta14Pct">Δ14d %</th>
+              <th class="numeric sortable" data-sort-key="nav30">NAV (30d)</th>
+              <th class="numeric sortable" data-sort-key="delta30Pct">Δ30d %</th>
+              <th class="numeric sortable" data-sort-key="delta30Value">Δ30d Value</th>
+            </tr>
+          </thead>
+          <tbody id="fund-rows">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="shell" id="charts">
+      <div class="section-head">
+        <p class="eyebrow">30d performance</p>
+        <h2>Scheme movement over the last 30 days.</h2>
+      </div>
+      <div class="chart-controls">
+        <label class="muted" for="chart-scheme">Select scheme:</label>
+        <select id="chart-scheme"></select>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="scheme-chart" height="200"></canvas>
+      </div>
+      <div class="chart-wrap" style="margin-top:12px;">
+        <p class="muted" style="margin:0 0 6px;">All schemes (4-point 30d trend)</p>
+        <canvas id="all-schemes-chart" height="260"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Built with vanilla HTML, CSS, and JavaScript.</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="compare.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+        console.error('SW registration failed', err);
+      });
+    }
+  </script>
+</body>
+</html>

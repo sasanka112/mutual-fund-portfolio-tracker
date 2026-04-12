@@ -1,0 +1,540 @@
+{
+  "asOf": "2026-04-11T10:00:57.326Z",
+  "dates": [
+    "2026-04-04",
+    "2026-03-28",
+    "2026-03-12"
+  ],
+  "rows": [
+    {
+      "amfiCode": "119727",
+      "schemeName": "SBI Focused Fund - Direct Plan - Growth",
+      "investmentAmount": 111000,
+      "unitBalance": 605.889,
+      "todayNav": 412.9836,
+      "nav7": 386.4838,
+      "nav14": 386.6497,
+      "nav30": 400.8265
+    },
+    {
+      "amfiCode": "119723",
+      "schemeName": "SBI ELSS Tax Saver Fund - Direct Plan - Growth",
+      "investmentAmount": 126000,
+      "unitBalance": 345.668,
+      "todayNav": 458.8961,
+      "nav7": 431.9966,
+      "nav14": 434.3789,
+      "nav30": 452.2059
+    },
+    {
+      "amfiCode": "133859",
+      "schemeName": "SBI Banking & Financial Services Fund - Direct Plan-Growth",
+      "investmentAmount": 60000,
+      "unitBalance": 2238.64,
+      "todayNav": 48.7947,
+      "nav7": 44.9595,
+      "nav14": 45.7624,
+      "nav30": 47.8814
+    },
+    {
+      "amfiCode": "119788",
+      "schemeName": "SBI Gold Fund - Direct Plan - Growth",
+      "investmentAmount": 40000,
+      "unitBalance": 1784.69,
+      "todayNav": 45.619,
+      "nav7": 44.5501,
+      "nav14": 43.5121,
+      "nav30": 48.9566
+    },
+    {
+      "amfiCode": "119732",
+      "schemeName": "SBI PSU Fund - Direct Plan - Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 554.206,
+      "todayNav": 39.0408,
+      "nav7": 36.8652,
+      "nav14": 36.79,
+      "nav30": 39.2782
+    },
+    {
+      "amfiCode": "119700",
+      "schemeName": "SBI Infrastructure Fund - Direct Plan - Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 404.488,
+      "todayNav": 51.5292,
+      "nav7": 48.2156,
+      "nav14": 48.1475,
+      "nav30": 50.3454
+    },
+    {
+      "amfiCode": "119718",
+      "schemeName": "SBI Flexicap Fund - Direct Plan - Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 163.579,
+      "todayNav": 118.2313,
+      "nav7": 111.0726,
+      "nav14": 111.4674,
+      "nav30": 116.1295
+    },
+    {
+      "amfiCode": "150673",
+      "schemeName": "SBI Nifty Midcap 150 Index Fund - Direct Plan Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 537.477,
+      "todayNav": 18.5292,
+      "nav7": 17.2313,
+      "nav14": 17.3588,
+      "nav30": 18.0946
+    },
+    {
+      "amfiCode": "152735",
+      "schemeName": "SBI Silver ETF Fund of Fund - Direct Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 366.438,
+      "todayNav": 25.3089,
+      "nav7": 24.1425,
+      "nav14": 23.7717,
+      "nav30": 28.2543
+    },
+    {
+      "amfiCode": "102756",
+      "schemeName": "SBI Focused Fund - Regular Plan - Growth",
+      "investmentAmount": 3000,
+      "unitBalance": 20.918,
+      "todayNav": 365.75,
+      "nav7": 342.3388,
+      "nav14": 342.5302,
+      "nav30": 355.2047
+    },
+    {
+      "amfiCode": "133857",
+      "schemeName": "SBI Banking & Financial Services Fund - Direct Plan - IDCW",
+      "investmentAmount": 0,
+      "unitBalance": 0,
+      "todayNav": 43.615,
+      "nav7": 40.187,
+      "nav14": 40.9046,
+      "nav30": 42.7987
+    },
+    {
+      "amfiCode": "101893",
+      "schemeName": "Kotak Money Market Fund - Direct Plan - Growth",
+      "investmentAmount": 9900,
+      "unitBalance": 2.093,
+      "todayNav": 4715.6156,
+      "nav7": 4697.6874,
+      "nav14": 4690.1252,
+      "nav30": 4683.9488
+    },
+    {
+      "amfiCode": "144335",
+      "schemeName": "Kotak Balanced Advantage Fund - Direct - Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 444.481,
+      "todayNav": 22.282,
+      "nav7": 21.372,
+      "nav14": 21.458,
+      "nav30": 21.964
+    },
+    {
+      "amfiCode": "151412",
+      "schemeName": "Mirae Asset Flexi Cap Fund - Direct Plan Growth",
+      "investmentAmount": 19999,
+      "unitBalance": 1319.72,
+      "todayNav": 16.291,
+      "nav7": 15.206,
+      "nav14": 15.321,
+      "nav30": 15.944
+    },
+    {
+      "amfiCode": "118825",
+      "schemeName": "Mirae Asset Large Cap Fund - Direct Plan Growth",
+      "investmentAmount": 66812.66,
+      "unitBalance": 1017.483,
+      "todayNav": 122.818,
+      "nav7": 115.637,
+      "nav14": 115.827,
+      "nav30": 120.408
+    },
+    {
+      "amfiCode": "147445",
+      "schemeName": "Mirae Asset Midcap Fund - Direct Plan Growth",
+      "investmentAmount": 123000,
+      "unitBalance": 3927.632,
+      "todayNav": 39.103,
+      "nav7": 36.489,
+      "nav14": 36.81,
+      "nav30": 38.23
+    },
+    {
+      "amfiCode": "118955",
+      "schemeName": "HDFC Flexi Cap Fund-DP-Growth",
+      "investmentAmount": 6983.6,
+      "unitBalance": 14.814,
+      "todayNav": 2162.972,
+      "nav7": 2030.109,
+      "nav14": 2042.568,
+      "nav30": 2111.779
+    },
+    {
+      "amfiCode": "118955",
+      "schemeName": "HDFC Flexi Cap Fund-DP-Growth",
+      "investmentAmount": 60000,
+      "unitBalance": 73.843,
+      "todayNav": 2162.972,
+      "nav7": 2030.109,
+      "nav14": 2042.568,
+      "nav30": 2111.779
+    },
+    {
+      "amfiCode": "119065",
+      "schemeName": "HDFC BSE Sensex Index Fund-DP Growth",
+      "investmentAmount": 126000,
+      "unitBalance": 186.53,
+      "todayNav": 737.2786,
+      "nav7": 697.104,
+      "nav14": 699.6493,
+      "nav30": 723.2125
+    },
+    {
+      "amfiCode": "115934",
+      "schemeName": "HDFC Gold ETF Fund of Fund-DP Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 693.177,
+      "todayNav": 44.3794,
+      "nav7": 43.378,
+      "nav14": 42.2703,
+      "nav30": 47.6444
+    },
+    {
+      "amfiCode": "115934",
+      "schemeName": "HDFC Gold ETF Fund of Fund-DP Growth",
+      "investmentAmount": 50000,
+      "unitBalance": 1167.22,
+      "todayNav": 44.3794,
+      "nav7": 43.378,
+      "nav14": 42.2703,
+      "nav30": 47.6444
+    },
+    {
+      "amfiCode": "130498",
+      "schemeName": "HDFC Large & Mid Cap Fund-Dir Gr",
+      "investmentAmount": 35000,
+      "unitBalance": 145.245,
+      "todayNav": 345.634,
+      "nav7": 322.26,
+      "nav14": 324.712,
+      "nav30": 340.064
+    },
+    {
+      "amfiCode": "101525",
+      "schemeName": "HDFC Nifty 50 Index Fund-DP Growth",
+      "investmentAmount": 30000,
+      "unitBalance": 127.461,
+      "todayNav": 228.4434,
+      "nav7": 215.7764,
+      "nav14": 216.7902,
+      "nav30": 224.6211
+    },
+    {
+      "amfiCode": "119060",
+      "schemeName": "HDFC ELSS Tax saver - DP - Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 6.712,
+      "todayNav": 1468.596,
+      "nav7": 1379.558,
+      "nav14": 1389.731,
+      "nav30": 1438.352
+    },
+    {
+      "amfiCode": "118632",
+      "schemeName": "NIPPON INDIA LARGE CAP FUND - DIRECT GROWTH PLAN GROWTH OPTION (EAAGG)",
+      "investmentAmount": 48133.27,
+      "unitBalance": 981.205,
+      "todayNav": 98.8886,
+      "nav7": 93.2361,
+      "nav14": 93.579,
+      "nav30": 97.31
+    },
+    {
+      "amfiCode": "106235",
+      "schemeName": "NIPPON INDIA LARGE CAP FUND - GROWTH PLAN GROWTH OPTION (EARGG)",
+      "investmentAmount": 12000,
+      "unitBalance": 346.209,
+      "todayNav": 88.118,
+      "nav7": 83.0948,
+      "nav14": 83.4106,
+      "nav30": 86.7645
+    },
+    {
+      "amfiCode": "118651",
+      "schemeName": "NIPPON INDIA MULTI CAP FUND - DIRECT GROWTH PLAN GROWTH OPTION (EOAGG)",
+      "investmentAmount": 30000,
+      "unitBalance": 101.433,
+      "todayNav": 317.7223,
+      "nav7": 300.0484,
+      "nav14": 300.075,
+      "nav30": 312.6226
+    },
+    {
+      "amfiCode": "149094",
+      "schemeName": "NIPPON INDIA FLEXI CAP FUND - DIRECT GROWTH PLAN (LCAGG)",
+      "investmentAmount": 20000,
+      "unitBalance": 1206.83,
+      "todayNav": 16.8484,
+      "nav7": 15.7705,
+      "nav14": 15.8134,
+      "nav30": 16.4862
+    },
+    {
+      "amfiCode": "146513",
+      "schemeName": "NIPPON INDIA NIFTY NEXT 50 JUNIOR BEES FOF - DIRECT GROWTH PLAN (RJAGG)",
+      "investmentAmount": 10000,
+      "unitBalance": 398.214,
+      "todayNav": 25.4863,
+      "nav7": 23.3692,
+      "nav14": 23.4492,
+      "nav30": 25.0138
+    },
+    {
+      "amfiCode": "118777",
+      "schemeName": "NIPPON INDIA SMALL CAP FUND - DIRECT GROWTH PLAN GROWTH OPTION (SCAGG)",
+      "investmentAmount": 64000,
+      "unitBalance": 785.81,
+      "todayNav": 181.1237,
+      "nav7": 169.9432,
+      "nav14": 169.0869,
+      "nav30": 175.8181
+    },
+    {
+      "amfiCode": "149760",
+      "schemeName": "NIPPON INDIA SILVER ETF FOF - DIRECT GROWTH PLAN (SOAGG)",
+      "investmentAmount": 60000,
+      "unitBalance": 2031.55,
+      "todayNav": 36.1279,
+      "nav7": 34.4431,
+      "nav14": 33.8964,
+      "nav30": 40.4439
+    },
+    {
+      "amfiCode": "141588",
+      "schemeName": "Axis Corporate Bond Fund - Direct Growth (CODGG)",
+      "investmentAmount": 10000,
+      "unitBalance": 549.366,
+      "todayNav": 18.8709,
+      "nav7": 18.7302,
+      "nav14": 18.7377,
+      "nav30": 18.8028
+    },
+    {
+      "amfiCode": "120465",
+      "schemeName": "Axis Large Cap Fund - Direct Growth (EFDGG)",
+      "investmentAmount": 77909.79,
+      "unitBalance": 2025.24,
+      "todayNav": 66.84,
+      "nav7": 63.11,
+      "nav14": 63.71,
+      "nav30": 65.85
+    },
+    {
+      "amfiCode": "125354",
+      "schemeName": "Axis Small Cap Fund - Direct Growth (SCDGG)",
+      "investmentAmount": 60000,
+      "unitBalance": 496.125,
+      "todayNav": 116.95,
+      "nav7": 110.55,
+      "nav14": 110.38,
+      "nav30": 114.03
+    },
+    {
+      "amfiCode": "112323",
+      "schemeName": "Axis ELSS Tax Saver Fund - Regular Growth",
+      "investmentAmount": 164000,
+      "unitBalance": 3182.59,
+      "todayNav": 91.7201,
+      "nav7": 85.9079,
+      "nav14": 86.9349,
+      "nav30": 89.8674
+    },
+    {
+      "amfiCode": "120591",
+      "schemeName": "ICICI Prudential Smallcap Fund - Direct Plan Growth",
+      "investmentAmount": 126000,
+      "unitBalance": 1565.51,
+      "todayNav": 91.81,
+      "nav7": 87.32,
+      "nav14": 86.07,
+      "nav30": 90.03
+    },
+    {
+      "amfiCode": "152728",
+      "schemeName": "ICICI Prudential Energy Opportunities Fund - DP - Growth",
+      "investmentAmount": 51000,
+      "unitBalance": 4917.46,
+      "todayNav": 10.95,
+      "nav7": 10.53,
+      "nav14": 10.5,
+      "nav30": 10.86
+    },
+    {
+      "amfiCode": "120685",
+      "schemeName": "ICICI Prudential Gold ETF FOF - DP Growth",
+      "investmentAmount": 40000,
+      "unitBalance": 1073.86,
+      "todayNav": 47.7816,
+      "nav7": 46.501,
+      "nav14": 45.3633,
+      "nav30": 51.161
+    },
+    {
+      "amfiCode": "150310",
+      "schemeName": "ICICI Prudential Housing Opportunities Fund - Direct Plan - Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 2063.88,
+      "todayNav": 17.67,
+      "nav7": 16.48,
+      "nav14": 16.65,
+      "nav30": 17.26
+    },
+    {
+      "amfiCode": "120586",
+      "schemeName": "ICICI Prudential Large Cap Fund (erstwhile Bluechip Fund) - Direct Plan Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 278.112,
+      "todayNav": 118.35,
+      "nav7": 111.56,
+      "nav14": 112.42,
+      "nav30": 116.41
+    },
+    {
+      "amfiCode": "120251",
+      "schemeName": "ICICI Prudential Equity & Debt Fund - DP - Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 23.364,
+      "todayNav": 443.03,
+      "nav7": 423.39,
+      "nav14": 424.94,
+      "nav30": 436.08
+    },
+    {
+      "amfiCode": "120621",
+      "schemeName": "ICICI Prudential Infrastructure Fund - Direct Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 48.353,
+      "todayNav": 210.36,
+      "nav7": 197.99,
+      "nav14": 195.5,
+      "nav30": 203.16
+    },
+    {
+      "amfiCode": "152354",
+      "schemeName": "Motilal Oswal Large Cap Direct Plan Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 703.952,
+      "todayNav": 13.5493,
+      "nav7": 12.7484,
+      "nav14": 12.7512,
+      "nav30": 13.2409
+    },
+    {
+      "amfiCode": "147704",
+      "schemeName": "Motilal Oswal Large and Midcap Fund - Direct Plan Growth",
+      "investmentAmount": 5000,
+      "unitBalance": 132.583,
+      "todayNav": 36.5322,
+      "nav7": 33.291,
+      "nav14": 33.4379,
+      "nav30": 34.0586
+    },
+    {
+      "amfiCode": "152237",
+      "schemeName": "Motilal Oswal Small Cap Fund - Direct Plan Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 699.809,
+      "todayNav": 13.8041,
+      "nav7": 12.9225,
+      "nav14": 12.9024,
+      "nav30": 13.1777
+    },
+    {
+      "amfiCode": "153749",
+      "schemeName": "MOTILAL OSWAL SPECIAL OPPORTUNITIES FUND - Direct Plan Growth",
+      "investmentAmount": 10000,
+      "unitBalance": 999.95,
+      "todayNav": 10.3879,
+      "nav7": 9.5899,
+      "nav14": 9.6463,
+      "nav30": 9.9036
+    },
+    {
+      "amfiCode": "151078",
+      "schemeName": "HSBC ELSS Tax Saver Fund - Direct Growth",
+      "investmentAmount": 20000,
+      "unitBalance": 134.631,
+      "todayNav": 143.0041,
+      "nav7": 134.1308,
+      "nav14": 134.5196,
+      "nav30": 139.2391
+    },
+    {
+      "amfiCode": "151974",
+      "schemeName": "LIC MF Gold ETF Fund of Fund - DIRECT PLAN GROWTH",
+      "investmentAmount": 60000,
+      "unitBalance": 1637.425691,
+      "todayNav": 40.6561,
+      "nav7": 39.5324,
+      "nav14": 38.6875,
+      "nav30": 43.5839
+    },
+    {
+      "amfiCode": "120351",
+      "schemeName": "LIC MF INFRASTRUCTURE FUND - DIRECT PLAN GROWTH",
+      "investmentAmount": 5000,
+      "unitBalance": 87.14927048,
+      "todayNav": 57.1516,
+      "nav7": 53.7799,
+      "nav14": 53.4573,
+      "nav30": 55.7909
+    },
+    {
+      "amfiCode": "120833",
+      "schemeName": "QUANT INFRASTRUCTURE FUND - DIRECT PLAN GROWTH",
+      "investmentAmount": 9999.5,
+      "unitBalance": 250.392,
+      "todayNav": 40.2071,
+      "nav7": 36.5585,
+      "nav14": 36.3121,
+      "nav30": 38.3772
+    },
+    {
+      "amfiCode": "150440",
+      "schemeName": "QUANT LARGE CAP FUND - DIRECT PLAN GROWTH",
+      "investmentAmount": 49997.5,
+      "unitBalance": 3070.682,
+      "todayNav": 15.3333,
+      "nav7": 13.9879,
+      "nav14": 14.1009,
+      "nav30": 14.8951
+    },
+    {
+      "amfiCode": "120841",
+      "schemeName": "QUANT MID CAP FUND - DIRECT PLAN GROWTH",
+      "investmentAmount": 49997.5,
+      "unitBalance": 190.707,
+      "todayNav": 228.6993,
+      "nav7": 216.2795,
+      "nav14": 215.979,
+      "nav30": 216.8313
+    },
+    {
+      "amfiCode": "120828",
+      "schemeName": "QUANT SMALL CAP FUND - DIRECT PLAN GROWTH",
+      "investmentAmount": 49997.5,
+      "unitBalance": 171.074,
+      "todayNav": 264.301,
+      "nav7": 247.9952,
+      "nav14": 245.1714,
+      "nav30": 251.7612
+    }
+  ]
+}

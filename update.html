@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Update Holdings - Mutual Fund Portfolio Tracker</title>
+  <meta name="theme-color" content="#0b1021">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="shell header">
+    <div class="logo">Mutual Fund Portfolio Tracker</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="compare.html">Compare</a>
+      <a href="update.html">Update Holdings</a>
+    </nav>
+    <button class="ghost" id="theme-toggle" aria-label="Toggle theme">🌞</button>
+  </header>
+
+  <main>
+    <section class="shell hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Edit your data</p>
+        <h1>Update investment amount — units auto-calc from latest NAV.</h1>
+        <p class="lede">Enter amounts (SIP/manual), we pull current NAV and compute units for you. Add/remove rows as needed.</p>
+        <div class="actions compare-actions">
+          <button class="primary" id="save-btn">Save changes</button>
+          <button class="secondary" id="add-row">Add holding</button>
+          <button class="ghost" id="download-btn">Download backup</button>
+          <label class="ghost file-label">
+            Restore JSON
+            <input type="file" id="upload-input" accept="application/json" hidden>
+          </label>
+        </div>
+        <p class="muted" id="status-text">Loading holdings…</p>
+      </div>
+    </section>
+
+    <section class="shell funds" id="holdings-editor">
+      <div class="section-head">
+        <p class="eyebrow">Holdings</p>
+        <h2>Edit amounts and units.</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>AMFI Code</th>
+              <th>Scheme Name</th>
+              <th class="numeric">Investment Amount</th>
+              <th class="numeric">Latest NAV</th>
+              <th class="numeric">Units (auto)</th>
+              <th class="numeric">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="edit-rows">
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Built with vanilla HTML, CSS, and JavaScript.</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script type="module" src="update.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+        console.error('SW registration failed', err);
+      });
+    }
+  </script>
+</body>
+</html>

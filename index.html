@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mutual Fund Portfolio Tracker</title>
+  <meta name="theme-color" content="#0b1021">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="shell header">
+    <div class="logo">Mutual Fund Portfolio Tracker</div>
+    <nav class="nav">
+      <a href="#features">Features</a>
+      <a href="#overview">Overview</a>
+      <a href="#funds">Funds</a>
+      <a href="#cta">Get Started</a>
+      <a href="compare.html">Compare</a>
+      <a href="navFetcher.js" download>NavFetcher</a>
+      <a href="update.html">Update Holdings</a>
+    </nav>
+    <button class="ghost" id="theme-toggle" aria-label="Toggle theme">🌞</button>
+  </header>
+
+  <main>
+    <section class="shell hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Fresh, fast, disciplined</p>
+        <h1>Track mutual fund portfolios with clarity and confidence.</h1>
+        <p class="lede">Monitor NAV trends, build model portfolios, and keep an eye on allocation drift—all in one elegant dashboard starter.</p>
+        <div class="actions">
+          <button class="primary" id="cta-btn">See sample portfolio</button>
+          <a class="secondary" href="#features">View capabilities →</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="card-header">
+          <span class="pill">Portfolio pulse</span>
+          <span class="status">● market open</span>
+        </div>
+        <div class="card-body" id="live-status">
+          Click "See sample portfolio" to refresh performance snapshot.
+        </div>
+        <div class="card-footer">
+          <span id="last-refresh">Last refresh: —</span>
+          <span class="spark">✦</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell insights" id="insights">
+      <div class="insight-grid">
+        <article class="insight-card">
+          <p class="muted">Schemes tracked</p>
+          <h3 id="total-schemes">—</h3>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Largest holding</p>
+          <h3 id="largest-holding">—</h3>
+          <span class="muted" id="largest-holding-name"></span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Best performer</p>
+          <h3 id="best-performer">—</h3>
+          <span class="muted" id="best-performer-name"></span>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Worst performer</p>
+          <h3 id="worst-performer">—</h3>
+          <span class="muted" id="worst-performer-name"></span>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell funds" id="funds">
+      <div class="section-head">
+        <p class="eyebrow">Fund schemes</p>
+        <h2>Latest NAV and holdings.</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-sort-key="schemeName">Scheme</th>
+              <th class="numeric sortable" data-sort-key="nav">Latest NAV</th>
+              <th class="numeric sortable" data-sort-key="inv">Amount invested</th>
+              <th class="numeric sortable" data-sort-key="units">Units</th>
+              <th class="numeric sortable" data-sort-key="currentValue">Current value</th>
+              <th class="numeric sortable" data-sort-key="gainAmt">Gain / loss</th>
+            </tr>
+          </thead>
+          <tbody id="fund-rows">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="shell summary" id="summary">
+      <div class="section-head">
+        <p class="eyebrow">Snapshot</p>
+        <h2>Totals at a glance.</h2>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <p class="muted">Total invested</p>
+          <h3 id="total-invested">₹0</h3>
+        </div>
+        <div class="summary-card">
+          <p class="muted">Current value</p>
+          <h3 id="current-value">₹0</h3>
+        </div>
+        <div class="summary-card">
+          <p class="muted">Gain / loss</p>
+          <h3 id="gain-loss">₹0</h3>
+        </div>
+        <div class="summary-card">
+          <p class="muted">Gain / loss %</p>
+          <h3 id="gain-loss-pct">0%</h3>
+        </div>
+        <div class="summary-card">
+          <p class="muted">1d move</p>
+          <h3 id="one-day-change">—</h3>
+          <span class="muted" id="one-day-pct">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell features" id="features">
+      <div class="section-head">
+        <p class="eyebrow">Why this tracker</p>
+        <h2>Built for serious fund monitoring.</h2>
+      </div>
+      <div class="grid">
+        <article class="feature">
+          <div class="icon">📈</div>
+          <h3>NAV trends</h3>
+          <p>Chart rolling NAV changes and detect unusual volatility fast.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">🎯</div>
+          <h3>Portfolio mix</h3>
+          <p>Track allocation by asset class, style, and geography to manage drift.</p>
+        </article>
+        <article class="feature">
+          <div class="icon">⏱️</div>
+          <h3>Alert ready</h3>
+          <p>Hook in thresholds for drawdowns, expense ratios, or beta changes.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell overview" id="overview">
+      <div class="overview-card">
+        <div class="overview-head">
+          <div>
+            <p class="eyebrow">Sample portfolio</p>
+            <h3>Balanced Growth | ₹18.4L</h3>
+          </div>
+          <span class="chip gain">▲ 12.8% 1Y</span>
+        </div>
+        <div class="overview-grid">
+          <div class="stat">
+            <p class="muted">Top holding</p>
+            <strong>Axis Bluechip</strong>
+            <span class="pill small">22%</span>
+          </div>
+          <div class="stat">
+            <p class="muted">Expense ratio</p>
+            <strong>0.58%</strong>
+            <span class="muted">Direct plan</span>
+          </div>
+          <div class="stat">
+            <p class="muted">Risk meter</p>
+            <strong>Moderate</strong>
+            <span class="muted">Equity 60% | Debt 35% | Gold 5%</span>
+          </div>
+          <div class="stat">
+            <p class="muted">SIP flow</p>
+            <strong>₹25,000</strong>
+            <span class="muted">1st of every month</span>
+          </div>
+        </div>
+        <div class="progress">
+          <div class="bar" style="width:60%">
+            <span>Equity 60%</span>
+          </div>
+          <div class="bar gold" style="width:5%">
+            <span>Gold 5%</span>
+          </div>
+          <div class="bar debt" style="width:35%">
+            <span>Debt 35%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell callout" id="cta">
+      <div>
+        <p class="eyebrow">Ready when you are</p>
+        <h2>Plug in live AMCs, add SIPs, and export holdings.</h2>
+      </div>
+      <button class="primary" id="cta-secondary">Plan next step</button>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Built with vanilla HTML, CSS, and JavaScript.</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+        console.error('SW registration failed', err);
+      });
+    }
+  </script>
+</body>
+</html>
