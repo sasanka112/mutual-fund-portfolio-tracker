@@ -12,8 +12,136 @@ const ROOT = __dirname;
 const PORT = process.env.PORT || 3000;
 const AMFI_URL = 'https://portal.amfiindia.com/spages/NAVAll.txt';
 const AMFI_HISTORY_URL = 'https://www.amfiindia.com/api/nav-history?query_type=all_for_date&from_date=';
-const HOLDINGS_FILE = path.join(ROOT, 'holdings.json');
+const HOLDINGS_CSV = path.join(ROOT, 'mf_detail.csv');
 const COMPARE_CACHE = path.join(ROOT, 'compare-cache.json');
+const STOCKS_FILE = path.join(ROOT, 'stock_detail.csv');
+
+function cleanNumber(str) {
+  if (str == null) return NaN;
+  const cleaned = String(str).replace(/[^0-9.\-]/g, '').trim();
+  return cleaned ? Number(cleaned) : NaN;
+}
+
+function splitCsv(line, delimiter) {
+  const out = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (ch === delimiter && !inQuotes) {
+      out.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += ch;
+  }
+  out.push(current.trim());
+  return out;
+}
+
+function parseHoldingsCsv(txt) {
+  const lines = txt.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+
+  const delimiter = lines[0].includes(',') ? ',' : '\t';
+  const split = (line) => splitCsv(line, delimiter);
+
+  const headers = split(lines[0]);
+  const findIdx = (pattern) => headers.findIndex((h) => pattern.test(h));
+  const amfiIdx = findIdx(/amf/i);
+  const schemeIdx = findIdx(/scheme/i);
+  const investIdx = findIdx(/invest/i);
+  const unitsIdx = findIdx(/unit/i);
+
+  return lines.slice(1).map((line) => {
+    const parts = split(line);
+    const amfiCode = amfiIdx >= 0 ? parts[amfiIdx]?.trim().replace(/^"|"$/g, '') : undefined;
+    const schemeName = schemeIdx >= 0 ? parts[schemeIdx]?.trim().replace(/^"|"$/g, '') : undefined;
+    const investmentAmount = investIdx >= 0 ? cleanNumber(parts[investIdx]) : NaN;
+    const unitBalance = unitsIdx >= 0 ? cleanNumber(parts[unitsIdx]) : NaN;
+    if (!amfiCode || !schemeName || Number.isNaN(investmentAmount) || Number.isNaN(unitBalance)) return null;
+    return { amfiCode, schemeName, investmentAmount, unitBalance };
+  }).filter(Boolean);
+}
+
+function holdingsToCsv(holdings) {
+  const headers = ['S NO', 'FOLIO NUM', 'Code', 'AMF code', 'Scheme name', 'Investment amount', 'Unit Balance'];
+  const rows = holdings.map((h, idx) => [
+    idx + 1,
+    '',
+    '',
+    '',
+    h.amfiCode,
+    h.schemeName,
+    Number(h.investmentAmount).toFixed(2),
+    Number(h.unitBalance).toFixed(3),
+  ]);
+  return [headers.join('\t'), ...rows.map((r) => r.join('\t'))].join('\n');
+}
+
+async function loadHoldings() {
+  const csv = await readFile(HOLDINGS_CSV, 'utf8');
+  return parseHoldingsCsv(csv);
+}
+
+function parseStocksCsv(txt) {
+  const lines = txt.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  const delimiter = lines[0].includes('\t') ? '\t' : ',';
+  const split = (line) => splitCsv(line, delimiter);
+  const headers = split(lines[0]);
+  const findIdx = (pattern) => headers.findIndex((h) => pattern.test(h));
+  const symbolIdx = findIdx(/symbol/i);
+  const isinIdx = findIdx(/isin/i);
+  const qtyIdx = findIdx(/open qty|qty|quantity/i);
+  const avgIdx = findIdx(/avg rate|avg price|avg/i);
+  const currentIdx = findIdx(/closing rate|current/i);
+
+  return lines.slice(1).map((line) => {
+    const parts = split(line);
+    const symbol = symbolIdx >= 0 ? parts[symbolIdx]?.trim().replace(/^"|"$/g, '') : undefined;
+    const isin = isinIdx >= 0 ? parts[isinIdx]?.trim().replace(/^"|"$/g, '') : undefined;
+    const quantity = qtyIdx >= 0 ? cleanNumber(parts[qtyIdx]) : NaN;
+    const avgPrice = avgIdx >= 0 ? cleanNumber(parts[avgIdx]) : NaN;
+    const currentPrice = currentIdx >= 0 ? cleanNumber(parts[currentIdx]) : undefined;
+    if ((!symbol && !isin) || Number.isNaN(quantity) || Number.isNaN(avgPrice)) return null;
+    return {
+      symbol,
+      isin,
+      quantity,
+      avgPrice,
+      currentPrice: Number.isNaN(currentPrice) ? avgPrice : currentPrice,
+    };
+  }).filter(Boolean);
+}
+
+function stocksToCsv(stocks) {
+  const delimiter = ',';
+  const headers = ['Scrip Name', 'Scrip Code', 'Symbol', 'ISIN', 'Scrip Opt', 'Open Qty', 'Avg Rate', 'Open Amt', 'Closing Rate Exchange', '', ''];
+  const rows = stocks.map((s) => [
+    s.symbol || '',
+    '',
+    s.symbol,
+    s.isin,
+    s.scripOpt || 'EQ',
+    Number(s.quantity).toFixed(0),
+    Number(s.avgPrice).toFixed(2),
+    (Number(s.quantity) * Number(s.avgPrice)).toFixed(2),
+    s.currentPrice != null ? Number(s.currentPrice).toFixed(2) : '',
+    '',
+    '',
+  ]);
+  return [headers.join(delimiter), ...rows.map((r) => r.join(delimiter))].join('\n');
+}
+
+async function loadStocks() {
+  const csv = await readFile(STOCKS_FILE, 'utf8');
+  return parseStocksCsv(csv);
+}
 
 async function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -128,7 +256,7 @@ function buildHistoryMap(payload) {
 }
 
 async function buildCompareCache() {
-  const holdings = JSON.parse(await readFile(HOLDINGS_FILE, 'utf8'));
+  const holdings = await loadHoldings();
   const codes = holdings.map((h) => String(h.amfiCode));
 
   // today NAVs
@@ -208,12 +336,12 @@ async function handleCompareCache(req, res) {
 
 async function handleDownloadHoldings(res) {
   try {
-    const buf = await readFile(HOLDINGS_FILE);
+    const csv = await readFile(HOLDINGS_CSV, 'utf8');
     res.writeHead(200, {
-      'Content-Type': 'application/json',
-      'Content-Disposition': 'attachment; filename="holdings.json"',
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="mf_detail.csv"',
     });
-    res.end(buf);
+    res.end(csv);
   } catch (err) {
     console.error(err);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -248,7 +376,102 @@ async function handleUpdateHoldings(req, res) {
       };
     });
 
-    await writeFile(HOLDINGS_FILE, JSON.stringify(sanitized, null, 2), 'utf8');
+    await writeFile(HOLDINGS_CSV, holdingsToCsv(sanitized), 'utf8');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, count: sanitized.length }));
+  } catch (err) {
+    console.error(err);
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: err.message || 'Update failed' }));
+  }
+}
+
+async function handleApiStocks(res) {
+  try {
+    const stocks = await loadStocks();
+    // Try to fetch live prices from NSE
+    const stocksWithPrices = await Promise.all(stocks.map(async (stock) => {
+      try {
+        const price = await fetchNsePrice(stock.symbol);
+        return { ...stock, currentPrice: price || stock.currentPrice };
+      } catch (err) {
+        console.warn(`Failed to fetch price for ${stock.symbol}:`, err.message);
+        return stock;
+      }
+    }));
+
+    // Update stocks file with new prices
+    await writeFile(STOCKS_FILE, stocksToCsv(stocksWithPrices), 'utf8');
+
+    const body = JSON.stringify({ stocks: stocksWithPrices });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(body);
+  } catch (err) {
+    console.error(err);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Server error');
+  }
+}
+
+function fetchNsePrice(symbol) {
+  return new Promise((resolve, reject) => {
+    // NSE provides quote data via their API
+    const url = `https://www.nseindia.com/api/quote-equity?symbol=${encodeURIComponent(symbol)}`;
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': '*/*',
+      },
+    };
+    
+    https.get(url, options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json && json.priceInfo && json.priceInfo.lastPrice) {
+            resolve(parseFloat(json.priceInfo.lastPrice));
+          } else {
+            resolve(null);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+async function handleUpdateStocks(req, res) {
+  try {
+    const payload = await parseJsonBody(req);
+    const stocks = payload && Array.isArray(payload.stocks) ? payload.stocks : null;
+    if (!stocks) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid payload; expected { stocks: [...] }' }));
+      return;
+    }
+
+    const sanitized = stocks.map((s) => {
+      const quantity = Number(s.quantity);
+      const avgPrice = Number(s.avgPrice);
+      if (!s.symbol || !s.isin || Number.isNaN(quantity) || Number.isNaN(avgPrice)) {
+        throw new Error('Each stock requires symbol, isin, quantity, avgPrice');
+      }
+      if (quantity < 0 || avgPrice < 0) {
+        throw new Error('Values cannot be negative');
+      }
+      return {
+        symbol: String(s.symbol),
+        isin: String(s.isin),
+        quantity,
+        avgPrice,
+        currentPrice: s.currentPrice || avgPrice,
+      };
+    });
+
+    await writeFile(STOCKS_FILE, stocksToCsv(sanitized), 'utf8');
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, count: sanitized.length }));
   } catch (err) {
@@ -260,11 +483,10 @@ async function handleUpdateHoldings(req, res) {
 
 async function handleApiPortfolio(res) {
   try {
-    const [holdingsBuf, amfiTxt] = await Promise.all([
-      readFile(HOLDINGS_FILE, 'utf8'),
+    const [holdings, amfiTxt] = await Promise.all([
+      loadHoldings(),
       fetchAmfiTxt(),
     ]);
-    const holdings = JSON.parse(holdingsBuf);
     const navs = parseNavMap(amfiTxt);
     const codes = holdings.map((h) => String(h.amfiCode));
     let prevNavs = {};
@@ -341,8 +563,26 @@ createServer((req, res) => {
   if (req.url.startsWith('/api/portfolio')) {
     return handleApiPortfolio(res);
   }
+  if (req.url.startsWith('/api/stocks') && req.method === 'GET') {
+    return handleApiStocks(res);
+  }
+  if (req.url.startsWith('/api/stocks') && req.method === 'POST') {
+    return handleUpdateStocks(req, res);
+  }
   if (req.url.startsWith('/api/holdings/download') && req.method === 'GET') {
     return handleDownloadHoldings(res);
+  }
+  if (req.url.startsWith('/api/holdings') && req.method === 'GET') {
+    return loadHoldings()
+      .then((holdings) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ holdings }));
+      })
+      .catch((err) => {
+        console.error(err);
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Failed to load holdings');
+      });
   }
   if (req.url.startsWith('/api/holdings') && req.method === 'POST') {
     return handleUpdateHoldings(req, res);

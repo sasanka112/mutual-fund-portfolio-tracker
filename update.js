@@ -9,6 +9,56 @@ const uploadInput = document.getElementById('upload-input');
 
 let navMap = new Map();
 
+function cleanNumber(str) {
+  if (str == null) return NaN;
+  const cleaned = String(str).replace(/[",]/g, '').trim();
+  return cleaned ? Number(cleaned) : NaN;
+}
+
+function parseHoldingsCsv(txt) {
+  const lines = txt.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+
+  const delimiter = lines[0].includes(',') ? ',' : '\t';
+  const split = (line) => {
+    const out = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (ch === delimiter && !inQuotes) {
+        out.push(current.trim());
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    out.push(current.trim());
+    return out;
+  };
+
+  const headers = split(lines[0]);
+  const findIdx = (pattern) => headers.findIndex((h) => pattern.test(h));
+  const amfiIdx = findIdx(/amf/i);
+  const schemeIdx = findIdx(/scheme/i);
+  const investIdx = findIdx(/invest/i);
+  const unitsIdx = findIdx(/unit/i);
+
+  return lines.slice(1).map((line) => {
+    const parts = split(line);
+    const amfiCode = amfiIdx >= 0 ? parts[amfiIdx]?.trim().replace(/^"|"$/g, '') : undefined;
+    const schemeName = schemeIdx >= 0 ? parts[schemeIdx]?.trim().replace(/^"|"$/g, '') : undefined;
+    const investmentAmount = investIdx >= 0 ? cleanNumber(parts[investIdx]) : NaN;
+    const unitBalance = unitsIdx >= 0 ? cleanNumber(parts[unitsIdx]) : NaN;
+    if (!amfiCode || !schemeName || Number.isNaN(investmentAmount) || Number.isNaN(unitBalance)) return null;
+    return { amfiCode, schemeName, investmentAmount, unitBalance };
+  }).filter(Boolean);
+}
+
 function toggleTheme() {
   body.classList.toggle('light');
   themeToggle.textContent = body.classList.contains('light') ? '🌙' : '🌞';
@@ -34,7 +84,6 @@ function createRow(data = {}) {
     <td class="numeric"><button class="ghost" aria-label="Remove">✕</button></td>
   `;
   tr.querySelector('button').addEventListener('click', () => tr.remove());
-  // Amount changes won't recalc units; only refresh NAV display
   tr.querySelectorAll('input')[2].addEventListener('input', () => updateUnitsForRow(tr));
   tr.querySelectorAll('input')[0].addEventListener('change', () => updateUnitsForRow(tr));
   return tr;
@@ -43,14 +92,10 @@ function createRow(data = {}) {
 async function loadHoldings() {
   try {
     setStatus('Loading holdings and NAVs…');
-    const [holdingsRes, navRes] = await Promise.all([
-      fetch('holdings.json', { cache: 'no-cache' }),
-      fetch('/api/portfolio', { cache: 'no-cache' }),
-    ]);
-    if (!holdingsRes.ok) throw new Error('Failed to load holdings.json');
+    const navRes = await fetch('/api/portfolio', { cache: 'no-cache' });
     if (!navRes.ok) throw new Error('Failed to load NAVs');
-    const holdings = await holdingsRes.json();
     const navPayload = await navRes.json();
+    const holdings = navPayload.holdings || [];
     const map = new Map(Object.entries(navPayload.navs || {}));
     navMap = map;
 
@@ -99,10 +144,26 @@ function updateUnitsForRow(tr) {
   const navCell = tr.querySelector('.nav-cell');
   const unitsCell = tr.querySelector('.units-cell');
 
-  navCell.textContent = amfiCode && !Number.isNaN(amount) && navMap.get(amfiCode)
-    ? Number(navMap.get(amfiCode)).toFixed(4)
-    : '—';
-  unitsCell.textContent = tr.dataset.units ? Number(tr.dataset.units).toFixed(3) : '—';
+  if (!amfiCode || Number.isNaN(amount)) {
+    navCell.textContent = '—';
+    unitsCell.textContent = tr.dataset.units || '—';
+    return;
+  }
+
+  const nav = navMap.get(amfiCode);
+  if (nav == null || Number.isNaN(nav)) {
+    navCell.textContent = 'N/A';
+    unitsCell.textContent = tr.dataset.units || 'N/A';
+    return;
+  }
+
+  navCell.textContent = Number(nav).toFixed(4);
+  // Preserve existing units; only compute if missing
+  if (!tr.dataset.units) {
+    const units = amount / nav;
+    tr.dataset.units = units;
+  }
+  unitsCell.textContent = Number(tr.dataset.units).toFixed(3);
 }
 
 async function saveHoldings() {
@@ -142,7 +203,7 @@ downloadBtn.addEventListener('click', async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'holdings.json';
+    a.download = 'mf_detail.csv';
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {
@@ -156,8 +217,14 @@ uploadInput.addEventListener('change', async (e) => {
   if (!file) return;
   try {
     const text = await file.text();
-    const parsed = JSON.parse(text);
-    if (!Array.isArray(parsed)) throw new Error('Invalid JSON: expected array');
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error('Invalid JSON: expected array');
+    } catch (_) {
+      parsed = parseHoldingsCsv(text);
+    }
+    if (!Array.isArray(parsed)) throw new Error('Invalid file: expected holdings list');
     tbody.innerHTML = '';
     parsed.forEach((h) => {
       const row = createRow(h);

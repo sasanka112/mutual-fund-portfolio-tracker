@@ -28,8 +28,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
-  // Do not cache API calls or holdings.json to avoid stale data
-  if (url.pathname.startsWith('/api/') || url.pathname.endsWith('holdings.json')) {
+  // Do not cache API calls or data files to avoid stale data
+  if (url.pathname.startsWith('/api/') || url.pathname.endsWith('mf_detail.csv') || url.pathname.endsWith('stock_detail.csv')) {
     return;
   }
 

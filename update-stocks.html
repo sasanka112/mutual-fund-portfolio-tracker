@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Update Holdings - Mutual Fund Portfolio Tracker</title>
+  <title>Update Stocks - Stock Portfolio Tracker</title>
   <meta name="theme-color" content="#0b1021">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,11 +14,11 @@
 <body>
   <div class="bg-grid"></div>
   <header class="shell header">
-    <div class="logo">Mutual Fund Portfolio Tracker</div>
+    <div class="logo">Stock Portfolio Tracker</div>
     <nav class="nav">
-      <a href="index.html">Dashboard</a>
-      <a href="compare.html">Compare</a>
-      <a href="update.html">Update Holdings</a>
+      <a href="index.html">Mutual Funds</a>
+      <a href="stocks.html">Stocks</a>
+      <a href="update-stocks.html">Update Stocks</a>
     </nav>
     <button class="ghost" id="theme-toggle" aria-label="Toggle theme">🌞</button>
   </header>
@@ -27,30 +27,30 @@
     <section class="shell hero" id="top">
       <div class="hero-copy">
         <p class="eyebrow">Edit your data</p>
-        <h1>Update investment amount — units auto-calc from latest NAV.</h1>
-        <p class="lede">Enter amounts (SIP/manual), we pull current NAV and compute units for you. Add/remove rows as needed.</p>
+        <h1>Update stock holdings.</h1>
+        <p class="lede">Enter your stock details with symbol, ISIN, quantity, and average price. Add/remove rows as needed.</p>
         <div class="actions compare-actions">
           <button class="primary" id="save-btn">Save changes</button>
-          <button class="secondary" id="add-row">Add holding</button>
+          <button class="secondary" id="add-row">Add stock</button>
         </div>
-        <p class="muted" id="status-text">Loading holdings…</p>
+        <p class="muted" id="status-text">Loading stocks…</p>
       </div>
     </section>
 
-    <section class="shell funds" id="holdings-editor">
+    <section class="shell funds" id="stocks-editor">
       <div class="section-head">
-        <p class="eyebrow">Holdings</p>
-        <h2>Edit amounts and units.</h2>
+        <p class="eyebrow">Stocks</p>
+        <h2>Edit your stock holdings.</h2>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>AMFI Code</th>
-              <th>Scheme Name</th>
-              <th class="numeric">Investment Amount</th>
-              <th class="numeric">Latest NAV</th>
-              <th class="numeric">Units (auto)</th>
+              <th>Symbol</th>
+              <th>ISIN</th>
+              <th class="numeric">Quantity</th>
+              <th class="numeric">Avg Price</th>
+              <th class="numeric">Current Price</th>
               <th class="numeric">Actions</th>
             </tr>
           </thead>
@@ -66,7 +66,7 @@
     <a href="#top">Back to top ↑</a>
   </footer>
 
-  <script type="module" src="update.js"></script>
+  <script type="module" src="update-stocks.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js').catch((err) => {

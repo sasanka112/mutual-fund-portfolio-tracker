@@ -1,0 +1,37 @@
+[
+  {
+    "symbol": "RELIANCE",
+    "isin": "INE002A01018",
+    "quantity": 50,
+    "avgPrice": 2400,
+    "currentPrice": 1385.3
+  },
+  {
+    "symbol": "TCS",
+    "isin": "INE467B01029",
+    "quantity": 25,
+    "avgPrice": 3500,
+    "currentPrice": 2400
+  },
+  {
+    "symbol": "INFY",
+    "isin": "INE009A01021",
+    "quantity": 100,
+    "avgPrice": 1400,
+    "currentPrice": 1176
+  },
+  {
+    "symbol": "HDFCBANK",
+    "isin": "INE040A01034",
+    "quantity": 75,
+    "avgPrice": 1600,
+    "currentPrice": 766.25
+  },
+  {
+    "symbol": "ICICIBANK",
+    "isin": "INE090A01021",
+    "quantity": 60,
+    "avgPrice": 950,
+    "currentPrice": 1267.2
+  }
+]

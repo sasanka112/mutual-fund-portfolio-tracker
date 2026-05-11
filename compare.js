@@ -15,8 +15,6 @@ const count7dGainersEl = document.getElementById('count-7d-gainers');
 const count30dGainersEl = document.getElementById('count-30d-gainers');
 const count30dLosersEl = document.getElementById('count-30d-losers');
 const median30dEl = document.getElementById('median-30d');
-const portfolio1dValueEl = document.getElementById('portfolio-1d-value');
-const portfolio1dPctEl = document.getElementById('portfolio-1d-pct');
 const portfolio7dValueEl = document.getElementById('portfolio-7d-value');
 const portfolio7dPctEl = document.getElementById('portfolio-7d-pct');
 const portfolio14dValueEl = document.getElementById('portfolio-14d-value');
@@ -314,17 +312,11 @@ async function compare(refresh = false) {
       }
 
       // portfolio-level movements
-      const sums = { nav1: 0, nav7: 0, nav14: 0, nav30: 0, today: 0, u1: 0, u7: 0, u14: 0, u30: 0 };
+      const sums = { nav7: 0, nav14: 0, nav30: 0, today: 0, u7: 0, u14: 0, u30: 0 };
       enriched.forEach((r) => {
         const units = r.units || 0;
         if (r.todayNav != null) {
           sums.today += r.todayNav * units;
-          sums.u1 += units;
-          // Use nav7 as fallback for 1d if available; else nav30; else null
-          const prior = r.nav7 ?? r.nav30 ?? null;
-          if (prior != null) {
-            sums.nav1 += prior * units;
-          }
         }
         if (r.nav7 != null) {
           sums.nav7 += r.nav7 * units;
@@ -353,7 +345,6 @@ async function compare(refresh = false) {
         pctEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% vs ${label}`;
       }
 
-      renderPortfolioMove(portfolio1dValueEl, portfolio1dPctEl, sums.nav1 || null, '1d');
       renderPortfolioMove(portfolio7dValueEl, portfolio7dPctEl, sums.nav7 || null, '7d');
       renderPortfolioMove(portfolio14dValueEl, portfolio14dPctEl, sums.nav14 || null, '14d');
       renderPortfolioMove(portfolio30dValueEl, portfolio30dPctEl, sums.nav30 || null, '30d');

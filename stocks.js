@@ -2,26 +2,22 @@ const themeToggle = document.getElementById('theme-toggle');
 const body = document.body;
 const ctaBtn = document.getElementById('cta-btn');
 const loadingSpinner = document.getElementById('loading-spinner');
-const fundRows = document.getElementById('fund-rows');
+const stockRows = document.getElementById('stock-rows');
 const totalInvestedEl = document.getElementById('total-invested');
 const currentValueEl = document.getElementById('current-value');
 const gainLossEl = document.getElementById('gain-loss');
 const gainLossPctEl = document.getElementById('gain-loss-pct');
-const oneDayChangeEl = document.getElementById('one-day-change');
-const oneDayPctEl = document.getElementById('one-day-pct');
-const lastRefreshEl = document.getElementById('last-refresh');
-const totalSchemesEl = document.getElementById('total-schemes');
-const largestHoldingEl = document.getElementById('largest-holding');
-const largestHoldingNameEl = document.getElementById('largest-holding-name');
+const totalStocksEl = document.getElementById('total-stocks');
 const bestPerformerEl = document.getElementById('best-performer');
 const bestPerformerNameEl = document.getElementById('best-performer-name');
 const worstPerformerEl = document.getElementById('worst-performer');
 const worstPerformerNameEl = document.getElementById('worst-performer-name');
+const lastRefreshEl = document.getElementById('last-refresh');
 
 let enrichedCache = [];
-let sortState = { key: null, dir: 'asc' }; // default: no sort
+let sortState = { key: null, dir: 'asc' };
 
-const PORTFOLIO_API = '/api/portfolio';
+const STOCKS_API = '/api/stocks';
 
 function setTheme(theme) {
   body.classList.toggle('light', theme === 'light');
@@ -29,24 +25,26 @@ function setTheme(theme) {
   localStorage.setItem('preferred-theme', theme);
 }
 
-// sorting handlers
 function clearSortIndicators() {
   document.querySelectorAll('th.sortable').forEach((th) => th.classList.remove('asc', 'desc'));
 }
 
 function renderTable(rows) {
-  fundRows.innerHTML = '';
+  stockRows.innerHTML = '';
   rows.forEach((row) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${row.schemeName}</td>
-      <td class="numeric">${row.nav ? row.nav.toFixed(4) : '—'}</td>
-      <td class="numeric">${formatCurrency(row.inv)}</td>
-      <td class="numeric">${row.units.toFixed(3)}</td>
-      <td class="numeric">${row.nav ? formatCurrency(row.currentValue) : '—'}</td>
-      <td class="numeric">${row.nav ? formatCurrency(row.currentValue - row.inv) : '—'}</td>
+      <td>${row.symbol}</td>
+      <td>${row.isin}</td>
+      <td class="numeric">${row.quantity}</td>
+      <td class="numeric">${formatCurrency(row.avgPrice)}</td>
+      <td class="numeric">${formatCurrency(row.currentPrice)}</td>
+      <td class="numeric">${formatCurrency(row.invested)}</td>
+      <td class="numeric">${formatCurrency(row.currentValue)}</td>
+      <td class="numeric">${row.gainAmt ? formatCurrency(row.gainAmt) : '—'}</td>
+      <td class="numeric">${row.gainPct !== null ? `${row.gainPct >= 0 ? '+' : ''}${row.gainPct.toFixed(2)}%` : '—'}</td>
     `;
-    fundRows.appendChild(tr);
+    stockRows.appendChild(tr);
   });
 }
 
@@ -97,41 +95,35 @@ function formatCurrency(num) {
   return `₹${Number(num || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 }
 
-function renderFunds(holdings, navMap, prevNavMap = new Map()) {
+function renderStocks(stocks) {
   let invested = 0;
   let current = 0;
-  let prevValueSum = 0;
 
   const enriched = [];
 
-  holdings.forEach((item, idx) => {
-    const code = String(item.amfiCode);
-    const nav = navMap.get(code) ?? null;
-    const prevNav = prevNavMap.get(code) ?? null;
-    const inv = Number(item.investmentAmount) || 0;
-    const units = Number(item.unitBalance) || 0;
-    const currentValue = nav ? nav * units : 0;
-    const prevValue = prevNav ? prevNav * units : null;
-    const gainAmt = nav ? currentValue - inv : null;
-    const gainPct = nav && inv !== 0 ? (gainAmt / inv) * 100 : null;
+  stocks.forEach((stock, idx) => {
+    const quantity = Number(stock.quantity) || 0;
+    const avgPrice = Number(stock.avgPrice) || 0;
+    const currentPrice = Number(stock.currentPrice) || avgPrice;
+    const investedAmt = quantity * avgPrice;
+    const currentValue = quantity * currentPrice;
+    const gainAmt = currentValue - investedAmt;
+    const gainPct = investedAmt !== 0 ? (gainAmt / investedAmt) * 100 : null;
 
-    invested += inv;
+    invested += investedAmt;
     current += currentValue;
-    if (prevValue !== null) prevValueSum += prevValue;
 
     enriched.push({
-      ...item,
+      ...stock,
       idx,
-      nav,
-      prevNav,
-      inv,
-      units,
+      quantity,
+      avgPrice,
+      currentPrice,
+      invested: investedAmt,
       currentValue,
-      prevValue,
       gainAmt,
       gainPct,
     });
-
   });
 
   enrichedCache = enriched;
@@ -147,46 +139,27 @@ function renderFunds(holdings, navMap, prevNavMap = new Map()) {
         if (typeof av === 'string') return av.localeCompare(bv) * dir;
         return (av - bv) * dir;
       })
-    : enriched; // default order
+    : enriched;
 
   renderTable(sorted);
 
   const gain = current - invested;
   const gainPct = invested === 0 ? 0 : (gain / invested) * 100;
-  const oneDayDelta = prevValueSum > 0 ? current - prevValueSum : null;
-  const oneDayPct = prevValueSum > 0 ? (oneDayDelta / prevValueSum) * 100 : null;
 
   totalInvestedEl.textContent = formatCurrency(invested);
   currentValueEl.textContent = formatCurrency(current);
   gainLossEl.textContent = `${gain >= 0 ? '+' : ''}${formatCurrency(gain).replace('₹-', '₹-')}`;
   gainLossPctEl.textContent = `${gainPct >= 0 ? '+' : ''}${gainPct.toFixed(2)}%`;
-  if (oneDayChangeEl && oneDayPctEl) {
-    if (oneDayDelta === null) {
-      oneDayChangeEl.textContent = '—';
-      oneDayPctEl.textContent = 'No prev NAV';
-    } else {
-      oneDayChangeEl.textContent = `${oneDayDelta >= 0 ? '+' : ''}${formatCurrency(oneDayDelta).replace('₹-', '₹-')}`;
-      oneDayPctEl.textContent = `${oneDayPct >= 0 ? '+' : ''}${oneDayPct.toFixed(2)}% vs prev close`;
-    }
-  }
-
-  // insights
-  if (totalSchemesEl) totalSchemesEl.textContent = holdings.length;
-
-  const byCurrent = enriched.filter((x) => x.nav).sort((a, b) => b.currentValue - a.currentValue);
-  if (byCurrent.length && largestHoldingEl && largestHoldingNameEl) {
-    largestHoldingEl.textContent = formatCurrency(byCurrent[0].currentValue);
-    largestHoldingNameEl.textContent = byCurrent[0].schemeName;
-  }
+  totalStocksEl.textContent = stocks.length;
 
   const byGainPct = enriched.filter((x) => x.gainPct !== null).sort((a, b) => b.gainPct - a.gainPct);
   if (byGainPct.length) {
     const best = byGainPct[0];
     bestPerformerEl.textContent = `${best.gainPct >= 0 ? '+' : ''}${best.gainPct.toFixed(2)}%`;
-    bestPerformerNameEl.textContent = best.schemeName;
+    bestPerformerNameEl.textContent = best.symbol;
     const worst = byGainPct[byGainPct.length - 1];
     worstPerformerEl.textContent = `${worst.gainPct >= 0 ? '+' : ''}${worst.gainPct.toFixed(2)}%`;
-    worstPerformerNameEl.textContent = worst.schemeName;
+    worstPerformerNameEl.textContent = worst.symbol;
   }
 
   const now = new Date();
@@ -195,65 +168,53 @@ function renderFunds(holdings, navMap, prevNavMap = new Map()) {
     lastRefreshEl.textContent = `Last refresh: ${ts}`;
   }
 
-  flashStatus('Portfolio snapshot refreshed.');
+  flashStatus('Stock portfolio refreshed.');
 }
 
-async function loadPortfolio(showCachedFirst = true) {
-  // Load cached data first if available
+async function loadStocks(showCachedFirst = true) {
   if (showCachedFirst) {
-    const cachedData = localStorage.getItem('portfolioCache');
+    const cachedData = localStorage.getItem('stocksCache');
     if (cachedData) {
       try {
-        const { holdings, navs, prevNavs, timestamp } = JSON.parse(cachedData);
-        const navMap = new Map(Object.entries(navs || {}));
-        const prevNavMap = new Map(Object.entries(prevNavs || {}));
-        renderFunds(holdings, navMap, prevNavMap);
+        const { stocks, timestamp } = JSON.parse(cachedData);
+        renderStocks(stocks);
         if (lastRefreshEl) {
           const ts = new Date(timestamp).toLocaleString('en-IN', { hour12: true });
           lastRefreshEl.textContent = `Last refresh: ${ts} (cached)`;
         }
       } catch (err) {
-        console.error('Failed to load cached data:', err);
+        console.error('Failed to load cached stocks:', err);
       }
     }
   }
 
-  // Fetch fresh data
   try {
     loadingSpinner.classList.add('active');
-    flashStatus('Loading holdings and NAVs...');
-    const res = await fetch(PORTFOLIO_API);
-    if (!res.ok) throw new Error('Portfolio API failed');
-    const { holdings, navs, prevNavs } = await res.json();
+    flashStatus('Loading stocks...');
+    const res = await fetch(STOCKS_API);
+    if (!res.ok) throw new Error('Stocks API failed');
+    const { stocks } = await res.json();
     
-    // Cache the fresh data
     const cacheData = {
-      holdings,
-      navs,
-      prevNavs,
+      stocks,
       timestamp: new Date().toISOString()
     };
-    localStorage.setItem('portfolioCache', JSON.stringify(cacheData));
+    localStorage.setItem('stocksCache', JSON.stringify(cacheData));
     
-    const navMap = new Map(Object.entries(navs || {}));
-    const prevNavMap = new Map(Object.entries(prevNavs || {}));
-    renderFunds(holdings, navMap, prevNavMap);
+    renderStocks(stocks);
   } catch (err) {
     console.error(err);
-    flashStatus('Failed to load data. Showing cached data.');
-    // Don't update timestamp on error - keep showing cached timestamp
+    flashStatus('Failed to load stocks. Showing cached data.');
   } finally {
     loadingSpinner.classList.remove('active');
   }
 }
 
-ctaBtn.addEventListener('click', () => loadPortfolio(false));
+ctaBtn.addEventListener('click', () => loadStocks(false));
 
-// keyboard shortcut: press "t" to toggle theme
 window.addEventListener('keydown', (e) => {
   if (e.key.toLowerCase() === 't') toggleTheme();
 });
 
-// initial render
 attachSorting();
-loadPortfolio();
+loadStocks();
