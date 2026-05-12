@@ -15,6 +15,13 @@ const AMFI_HISTORY_URL = 'https://www.amfiindia.com/api/nav-history?query_type=a
 const HOLDINGS_CSV = path.join(ROOT, 'mf_detail.csv');
 const COMPARE_CACHE = path.join(ROOT, 'compare-cache.json');
 const STOCKS_FILE = path.join(ROOT, 'stock_detail.csv');
+const DATA_SOURCE = 'local'; // force local source
+const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
+const SHEETS_API_KEY = process.env.GOOGLE_API_KEY;
+const SHEETS_MF_RANGE = process.env.SHEETS_MF_RANGE || 'Sheet1!A:G';
+const SHEETS_STOCK_RANGE = process.env.SHEETS_STOCK_RANGE || 'Sheet2!A:K';
+const SHEETS_INSECURE = process.env.SHEETS_INSECURE === 'false' ? false : true;
+const sheetsAgent = SHEETS_INSECURE ? new https.Agent({ rejectUnauthorized: false }) : undefined;
 
 function cleanNumber(str) {
   if (str == null) return NaN;
@@ -83,9 +90,114 @@ function holdingsToCsv(holdings) {
   return [headers.join('\t'), ...rows.map((r) => r.join('\t'))].join('\n');
 }
 
-async function loadHoldings() {
+function pickSourceConfig(override = {}) {
+  return {
+    source: 'local',
+    sheetId: override.sheetId || SHEETS_ID,
+    apiKey: override.apiKey || SHEETS_API_KEY,
+    mfRange: override.mfRange || SHEETS_MF_RANGE,
+    stockRange: override.stockRange || SHEETS_STOCK_RANGE,
+  };
+}
+
+async function loadHoldings(opts = {}) {
+  const cfg = pickSourceConfig(opts);
+  if (cfg.source === 'sheets') {
+    if (cfg.sheetId) {
+      try {
+        return await loadHoldingsFromSheets(cfg.sheetId, cfg.apiKey, cfg.mfRange);
+      } catch (err) {
+        throw err;
+      }
+    } else {
+      throw new Error('sheetId is required for sheets source');
+    }
+  }
   const csv = await readFile(HOLDINGS_CSV, 'utf8');
   return parseHoldingsCsv(csv);
+}
+
+async function fetchSheetRange(sheetId, apiKey, rangeA1) {
+  const [sheetName, rangePart] = rangeA1.includes('!') ? rangeA1.split('!') : [rangeA1, ''];
+  // If API key provided, use official Sheets API
+  if (apiKey) {
+    const encodedRange = encodeURIComponent(rangeA1);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodedRange}?key=${apiKey}`;
+    return new Promise((resolve, reject) => {
+      https
+        .get(url, { agent: sheetsAgent }, (res) => {
+          if (res.statusCode !== 200) {
+            reject(new Error(`Sheets request failed with ${res.statusCode}`));
+            res.resume();
+            return;
+          }
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              resolve(json.values || []);
+            } catch (err) {
+              reject(err);
+            }
+          });
+        })
+        .on('error', reject);
+    });
+  }
+
+  // Public sheet without API key: use gviz CSV export
+  const params = new URLSearchParams({ tqx: 'out:csv' });
+  if (sheetName) params.append('sheet', sheetName.replace(/^'|'$/g, ''));
+  if (rangePart) params.append('range', rangePart);
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${params.toString()}`;
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, { agent: sheetsAgent }, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Public Sheets request failed with ${res.statusCode}`));
+          res.resume();
+          return;
+        }
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          try {
+            const lines = data.split(/\r?\n/).filter((l) => l.trim().length);
+            const rows = lines.map((line) => splitCsv(line, ','));
+            resolve(rows);
+          } catch (err) {
+            reject(err);
+          }
+        });
+      })
+      .on('error', reject);
+  });
+}
+
+function parseHoldingsRows(rows) {
+  if (!rows.length) return [];
+  const headers = rows[0].map((h) => String(h || '').trim());
+  const findIdx = (pattern) => headers.findIndex((h) => pattern.test(h));
+  const amfiIdx = findIdx(/amf/i);
+  const schemeIdx = findIdx(/scheme/i);
+  const investIdx = findIdx(/invest/i);
+  const unitsIdx = findIdx(/unit/i);
+  return rows.slice(1).map((row) => {
+    const amfiCode = amfiIdx >= 0 ? String(row[amfiIdx] || '').trim() : undefined;
+    const schemeName = schemeIdx >= 0 ? String(row[schemeIdx] || '').trim() : undefined;
+    const investmentAmount = investIdx >= 0 ? cleanNumber(row[investIdx]) : NaN;
+    const unitBalance = unitsIdx >= 0 ? cleanNumber(row[unitsIdx]) : NaN;
+    if (!amfiCode || !schemeName || Number.isNaN(investmentAmount) || Number.isNaN(unitBalance)) return null;
+    return { amfiCode, schemeName, investmentAmount, unitBalance };
+  }).filter(Boolean);
+}
+
+async function loadHoldingsFromSheets(sheetId, apiKey, range) {
+  const rows = await fetchSheetRange(sheetId, apiKey, range);
+  return parseHoldingsRows(rows);
 }
 
 function parseStocksCsv(txt) {
@@ -138,9 +250,63 @@ function stocksToCsv(stocks) {
   return [headers.join(delimiter), ...rows.map((r) => r.join(delimiter))].join('\n');
 }
 
-async function loadStocks() {
+async function loadStocks(opts = {}) {
+  const cfg = pickSourceConfig(opts);
+  if (cfg.source === 'sheets') {
+    if (cfg.sheetId) {
+      try {
+        return await loadStocksFromSheets(cfg.sheetId, cfg.apiKey, cfg.stockRange);
+      } catch (err) {
+        throw err;
+      }
+    } else {
+      throw new Error('sheetId is required for sheets source');
+    }
+  }
   const csv = await readFile(STOCKS_FILE, 'utf8');
   return parseStocksCsv(csv);
+}
+
+function parseStocksRows(rows) {
+  if (!rows.length) return [];
+  const headers = rows[0].map((h) => String(h || '').trim());
+  const findIdx = (pattern) => headers.findIndex((h) => pattern.test(h));
+  const symbolIdx = findIdx(/symbol/i);
+  const isinIdx = findIdx(/isin/i);
+  const qtyIdx = findIdx(/open qty|qty|quantity/i);
+  const avgIdx = findIdx(/avg rate|avg price|avg/i);
+  const currentIdx = findIdx(/closing rate|current/i);
+  return rows.slice(1).map((row) => {
+    const symbol = symbolIdx >= 0 ? String(row[symbolIdx] || '').trim() : undefined;
+    const isin = isinIdx >= 0 ? String(row[isinIdx] || '').trim() : undefined;
+    const quantity = qtyIdx >= 0 ? cleanNumber(row[qtyIdx]) : NaN;
+    const avgPrice = avgIdx >= 0 ? cleanNumber(row[avgIdx]) : NaN;
+    const currentPrice = currentIdx >= 0 ? cleanNumber(row[currentIdx]) : undefined;
+    if ((!symbol && !isin) || Number.isNaN(quantity) || Number.isNaN(avgPrice)) return null;
+    return {
+      symbol,
+      isin,
+      quantity,
+      avgPrice,
+      currentPrice: Number.isNaN(currentPrice) ? avgPrice : currentPrice,
+    };
+  }).filter(Boolean);
+}
+
+async function loadStocksFromSheets(sheetId, apiKey, range) {
+  const rows = await fetchSheetRange(sheetId, apiKey, range);
+  return parseStocksRows(rows);
+}
+
+function sheetConfigFromRequest(req) {
+  const urlObj = new URL(req.url, `http://localhost:${PORT}`);
+  return {
+    source: urlObj.searchParams.get('source') || undefined,
+    sheetId: urlObj.searchParams.get('sheetId') || undefined,
+    apiKey: urlObj.searchParams.get('apiKey') || undefined,
+    mfRange: urlObj.searchParams.get('mfRange') || undefined,
+    stockRange: urlObj.searchParams.get('stockRange') || undefined,
+  };
 }
 
 async function parseJsonBody(req) {
@@ -386,9 +552,10 @@ async function handleUpdateHoldings(req, res) {
   }
 }
 
-async function handleApiStocks(res) {
+async function handleApiStocks(req, res) {
   try {
-    const stocks = await loadStocks();
+    const cfg = sheetConfigFromRequest(req);
+    const stocks = await loadStocks(cfg);
     // Try to fetch live prices from NSE
     const stocksWithPrices = await Promise.all(stocks.map(async (stock) => {
       try {
@@ -481,10 +648,11 @@ async function handleUpdateStocks(req, res) {
   }
 }
 
-async function handleApiPortfolio(res) {
+async function handleApiPortfolio(req, res) {
   try {
+    const cfg = sheetConfigFromRequest(req);
     const [holdings, amfiTxt] = await Promise.all([
-      loadHoldings(),
+      loadHoldings(cfg),
       fetchAmfiTxt(),
     ]);
     const navs = parseNavMap(amfiTxt);
@@ -561,19 +729,20 @@ createServer((req, res) => {
     return;
   }
   if (req.url.startsWith('/api/portfolio')) {
-    return handleApiPortfolio(res);
+    return handleApiPortfolio(req, res);
   }
   if (req.url.startsWith('/api/stocks') && req.method === 'GET') {
-    return handleApiStocks(res);
+    return handleApiStocks(req, res);
   }
   if (req.url.startsWith('/api/stocks') && req.method === 'POST') {
     return handleUpdateStocks(req, res);
   }
   if (req.url.startsWith('/api/holdings/download') && req.method === 'GET') {
-    return handleDownloadHoldings(res);
+    return handleDownloadHoldings(req, res);
   }
   if (req.url.startsWith('/api/holdings') && req.method === 'GET') {
-    return loadHoldings()
+    const cfg = sheetConfigFromRequest(req);
+    return loadHoldings(cfg)
       .then((holdings) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ holdings }));
