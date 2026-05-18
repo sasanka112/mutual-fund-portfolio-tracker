@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stock Portfolio Tracker</title>
+  <title>Mutual Fund Portfolio Tracker</title>
   <meta name="theme-color" content="#0b1021">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +13,7 @@
 <body>
   <div class="bg-grid"></div>
   <header class="shell header">
-    <div class="logo">Stock Portfolio Tracker</div>
+    <div class="logo">Mutual Fund Portfolio Tracker</div>
     <nav class="nav">
       <a href="index.html">Dashboard</a>
       <a href="mutual-funds.html">Mutual Funds</a>
@@ -30,6 +30,7 @@
       <div class="hero-controls">
         <button class="primary" id="cta-btn">Refresh</button>
         <span id="last-refresh">Last refresh: —</span>
+        <span class="muted" id="status-text"></span>
         <div class="loading-spinner" id="loading-spinner"></div>
       </div>
     </section>
@@ -53,14 +54,24 @@
           <h3 id="gain-loss-pct">0%</h3>
         </div>
         <div class="summary-card">
-          <p class="muted">Stocks held</p>
-          <h3 id="total-stocks">0</h3>
+          <p class="muted">1-day change</p>
+          <h3 id="one-day-change">—</h3>
+          <span class="muted" id="one-day-pct"></span>
+        </div>
+        <div class="summary-card">
+          <p class="muted">Total schemes</p>
+          <h3 id="total-schemes">0</h3>
         </div>
       </div>
     </section>
 
     <section class="shell insights" id="insights">
       <div class="insight-grid">
+        <article class="insight-card">
+          <p class="muted">Largest holding</p>
+          <h3 id="largest-holding">—</h3>
+          <span class="muted" id="largest-holding-name"></span>
+        </article>
         <article class="insight-card">
           <p class="muted">Best performer</p>
           <h3 id="best-performer">—</h3>
@@ -74,27 +85,24 @@
       </div>
     </section>
 
-    <section class="shell funds" id="stocks">
+    <section class="shell funds" id="funds">
       <div class="section-head">
-        <p class="eyebrow">Stock holdings</p>
-        <h2>Latest prices and performance.</h2>
+        <p class="eyebrow">Mutual fund holdings</p>
+        <h2>Latest NAVs and performance.</h2>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th class="sortable" data-sort-key="symbol">Symbol</th>
-              <th class="sortable" data-sort-key="isin">ISIN</th>
-              <th class="numeric sortable" data-sort-key="quantity">Quantity</th>
-              <th class="numeric sortable" data-sort-key="avgPrice">Avg price</th>
-              <th class="numeric sortable" data-sort-key="currentPrice">Current price</th>
-              <th class="numeric sortable" data-sort-key="invested">Invested</th>
+              <th class="sortable" data-sort-key="schemeName">Scheme</th>
+              <th class="numeric sortable" data-sort-key="nav">NAV</th>
+              <th class="numeric sortable" data-sort-key="inv">Invested</th>
+              <th class="numeric sortable" data-sort-key="units">Units</th>
               <th class="numeric sortable" data-sort-key="currentValue">Current value</th>
               <th class="numeric sortable" data-sort-key="gainAmt">Gain / loss</th>
-              <th class="numeric sortable" data-sort-key="gainPct">Gain / loss %</th>
             </tr>
           </thead>
-          <tbody id="stock-rows">
+          <tbody id="fund-rows">
           </tbody>
         </table>
       </div>
@@ -106,6 +114,6 @@
     <a href="#top">Back to top ↑</a>
   </footer>
 
-  <script src="stocks.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

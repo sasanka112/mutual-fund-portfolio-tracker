@@ -16,7 +16,8 @@
   <header class="shell header">
     <div class="logo">Portfolio Dashboard</div>
     <nav class="nav">
-      <a href="#summary">Dashboard</a>
+      <a href="index.html">Dashboard</a>
+      <a href="mutual-funds.html">Mutual Funds</a>
       <a href="stocks.html">Stocks</a>
       <a href="compare.html">Compare</a>
       <a href="update.html">Update Holdings</a>
@@ -85,6 +86,16 @@
         </div>
       </div>
       <a class="ghost" href="index.html#" aria-label="Open funds page" style="display:none"></a>
+      <div class="top-bottom-grid">
+        <div class="top-bottom-card">
+          <h4>Top 5 Funds (Highest Return %)</h4>
+          <ol id="mf-top5"></ol>
+        </div>
+        <div class="top-bottom-card">
+          <h4>Bottom 5 Funds (Weakest Return %)</h4>
+          <ol id="mf-bottom5"></ol>
+        </div>
+      </div>
     </section>
 
     <section class="shell summary" id="stock-summary">
@@ -112,6 +123,33 @@
         <div class="summary-card">
           <p class="muted">Stocks held</p>
           <h3 id="stock-count">0</h3>
+        </div>
+      </div>
+      <div class="top-bottom-grid">
+        <div class="top-bottom-card">
+          <h4>Top 5 Stocks (Highest Return %)</h4>
+          <ol id="stock-top5"></ol>
+        </div>
+        <div class="top-bottom-card">
+          <h4>Bottom 5 Stocks (Weakest Return %)</h4>
+          <ol id="stock-bottom5"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell summary" id="losers-section">
+      <div class="section-head">
+        <p class="eyebrow">In the Red</p>
+        <h2>All negative return holdings <span id="losers-total-count" class="muted" style="font-size:0.8em"></span></h2>
+      </div>
+      <div class="losers-grid">
+        <div class="losers-col">
+          <h4>Mutual Funds <span id="mf-losers-count" class="muted" style="font-size:0.85em"></span></h4>
+          <ul id="mf-losers" class="losers-list"></ul>
+        </div>
+        <div class="losers-col">
+          <h4>Stocks <span id="stock-losers-count" class="muted" style="font-size:0.85em"></span></h4>
+          <ul id="stock-losers" class="losers-list"></ul>
         </div>
       </div>
     </section>

@@ -15,6 +15,8 @@ const AMFI_HISTORY_URL = 'https://www.amfiindia.com/api/nav-history?query_type=a
 const HOLDINGS_CSV = path.join(ROOT, 'mf_detail.csv');
 const COMPARE_CACHE = path.join(ROOT, 'compare-cache.json');
 const STOCKS_FILE = path.join(ROOT, 'stock_detail.csv');
+const GITHUB_MF_URL = 'https://raw.githubusercontent.com/sasanka112/public_data_files/main/mf_detail.csv';
+const GITHUB_STOCKS_URL = 'https://raw.githubusercontent.com/sasanka112/public_data_files/main/stock_detail.csv';
 const DATA_SOURCE = 'local'; // force local source
 const SHEETS_ID = process.env.GOOGLE_SHEETS_ID;
 const SHEETS_API_KEY = process.env.GOOGLE_API_KEY;
@@ -27,6 +29,34 @@ function cleanNumber(str) {
   if (str == null) return NaN;
   const cleaned = String(str).replace(/[^0-9.\-]/g, '').trim();
   return cleaned ? Number(cleaned) : NaN;
+}
+
+function fetchUrlContent(url) {
+  return new Promise((resolve, reject) => {
+    const bustUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const parsed = new URL(bustUrl);
+    const options = {
+      hostname: parsed.hostname,
+      path: parsed.pathname + parsed.search,
+      headers: {
+        'User-Agent': 'MF-Portfolio-Tracker',
+        'Accept': 'application/vnd.github.raw',
+        'Cache-Control': 'no-cache',
+      },
+      agent: new https.Agent({ rejectUnauthorized: false }),
+    };
+    https.get(options, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`Request to ${url} failed with status ${res.statusCode}`));
+        res.resume();
+        return;
+      }
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
 }
 
 function splitCsv(line, delimiter) {
@@ -113,7 +143,7 @@ async function loadHoldings(opts = {}) {
       throw new Error('sheetId is required for sheets source');
     }
   }
-  const csv = await readFile(HOLDINGS_CSV, 'utf8');
+  const csv = await fetchUrlContent(GITHUB_MF_URL);
   return parseHoldingsCsv(csv);
 }
 
@@ -263,7 +293,7 @@ async function loadStocks(opts = {}) {
       throw new Error('sheetId is required for sheets source');
     }
   }
-  const csv = await readFile(STOCKS_FILE, 'utf8');
+  const csv = await fetchUrlContent(GITHUB_STOCKS_URL);
   return parseStocksCsv(csv);
 }
 
@@ -502,7 +532,7 @@ async function handleCompareCache(req, res) {
 
 async function handleDownloadHoldings(res) {
   try {
-    const csv = await readFile(HOLDINGS_CSV, 'utf8');
+    const csv = await fetchUrlContent(GITHUB_MF_URL);
     res.writeHead(200, {
       'Content-Type': 'text/csv',
       'Content-Disposition': 'attachment; filename="mf_detail.csv"',

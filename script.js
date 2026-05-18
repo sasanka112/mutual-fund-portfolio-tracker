@@ -222,7 +222,7 @@ async function loadPortfolio(showCachedFirst = true) {
   try {
     loadingSpinner.classList.add('active');
     flashStatus('Loading holdings and NAVs...');
-    const res = await fetch(PORTFOLIO_API);
+    const res = await fetch(PORTFOLIO_API, { cache: 'no-cache' });
     if (!res.ok) throw new Error('Portfolio API failed');
     const { holdings, navs, prevNavs } = await res.json();
     

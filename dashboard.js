@@ -49,31 +49,60 @@ function formatCurrency(num) {
 function computeMfSummary(holdings, navs) {
   let invested = 0;
   let current = 0;
+  const items = [];
   holdings.forEach((h) => {
     const inv = Number(h.investmentAmount) || 0;
     const units = Number(h.unitBalance) || 0;
     const nav = navs[String(h.amfiCode)] ?? 0;
+    const cur = nav * units;
     invested += inv;
-    current += nav * units;
+    current += cur;
+    const itemGain = cur - inv;
+    const itemGainPct = inv === 0 ? 0 : (itemGain / inv) * 100;
+    items.push({ name: h.schemeName || String(h.amfiCode), gainPct: itemGainPct });
   });
   const gain = current - invested;
   const gainPct = invested === 0 ? 0 : (gain / invested) * 100;
-  return { invested, current, gain, gainPct, count: holdings.length };
+  return { invested, current, gain, gainPct, count: holdings.length, items };
 }
 
 function computeStockSummary(stocks) {
   let invested = 0;
   let current = 0;
+  const items = [];
   stocks.forEach((s) => {
     const qty = Number(s.quantity) || 0;
     const avg = Number(s.avgPrice) || 0;
     const cur = Number(s.currentPrice) || avg;
-    invested += qty * avg;
-    current += qty * cur;
+    const sInv = qty * avg;
+    const sCur = qty * cur;
+    invested += sInv;
+    current += sCur;
+    const itemGain = sCur - sInv;
+    const itemGainPct = sInv === 0 ? 0 : (itemGain / sInv) * 100;
+    items.push({ name: s.symbol || s.isin || '—', gainPct: itemGainPct });
   });
   const gain = current - invested;
   const gainPct = invested === 0 ? 0 : (gain / invested) * 100;
-  return { invested, current, gain, gainPct, count: stocks.length };
+  return { invested, current, gain, gainPct, count: stocks.length, items };
+}
+
+function renderTopBottom(items, topElId, bottomElId) {
+  const sorted = [...items].sort((a, b) => b.gainPct - a.gainPct);
+  const top5 = sorted.slice(0, 5);
+  const bottom5 = sorted.slice(-5).reverse();
+  const topEl = document.getElementById(topElId);
+  const bottomEl = document.getElementById(bottomElId);
+  if (topEl) {
+    topEl.innerHTML = top5.map((i) =>
+      `<li><span class="tb-name">${i.name}</span> <span class="tb-pct ${i.gainPct >= 0 ? 'positive' : 'negative'}">${i.gainPct >= 0 ? '+' : ''}${i.gainPct.toFixed(2)}%</span></li>`
+    ).join('');
+  }
+  if (bottomEl) {
+    bottomEl.innerHTML = bottom5.map((i) =>
+      `<li><span class="tb-name">${i.name}</span> <span class="tb-pct ${i.gainPct >= 0 ? 'positive' : 'negative'}">${i.gainPct >= 0 ? '+' : ''}${i.gainPct.toFixed(2)}%</span></li>`
+    ).join('');
+  }
 }
 
 function renderAll(mfSummary, stockSummary) {
@@ -98,6 +127,29 @@ function renderAll(mfSummary, stockSummary) {
   stockGainEl.textContent = `${stockSummary.gain >= 0 ? '+' : ''}${formatCurrency(stockSummary.gain).replace('₹-', '₹-')}`;
   stockGainPctEl.textContent = `${stockSummary.gainPct >= 0 ? '+' : ''}${stockSummary.gainPct.toFixed(2)}%`;
   stockCountEl.textContent = stockSummary.count;
+
+  renderTopBottom(mfSummary.items || [], 'mf-top5', 'mf-bottom5');
+  renderTopBottom(stockSummary.items || [], 'stock-top5', 'stock-bottom5');
+  const mfLosersCount = renderLosers(mfSummary.items || [], 'mf-losers', 'mf-losers-count');
+  const stockLosersCount = renderLosers(stockSummary.items || [], 'stock-losers', 'stock-losers-count');
+  const totalEl = document.getElementById('losers-total-count');
+  if (totalEl) totalEl.textContent = `(${mfLosersCount + stockLosersCount})`;
+}
+
+function renderLosers(items, elId, countElId) {
+  const el = document.getElementById(elId);
+  const countEl = document.getElementById(countElId);
+  const losers = items.filter((i) => i.gainPct < 0).sort((a, b) => a.gainPct - b.gainPct);
+  if (countEl) countEl.textContent = `(${losers.length})`;
+  if (!el) return losers.length;
+  if (!losers.length) {
+    el.innerHTML = '<li class="losers-empty">None</li>';
+    return 0;
+  }
+  el.innerHTML = losers.map((i) =>
+    `<li><span class="losers-name">${i.name}</span><span class="losers-pct">${i.gainPct.toFixed(2)}%</span></li>`
+  ).join('');
+  return losers.length;
 }
 
 async function fetchMf() {
