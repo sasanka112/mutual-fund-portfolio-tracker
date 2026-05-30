@@ -588,6 +588,7 @@ async function handleApiStocks(req, res) {
     const stocks = await loadStocks(cfg);
     // Try to fetch live prices from NSE
     const stocksWithPrices = await Promise.all(stocks.map(async (stock) => {
+      if (!stock.symbol) return stock;
       try {
         const price = await fetchNsePrice(stock.symbol);
         return { ...stock, currentPrice: price || stock.currentPrice };
@@ -637,6 +638,56 @@ function fetchNsePrice(symbol) {
         }
       });
     }).on('error', reject);
+  });
+}
+
+function fetchYahooHistoricalPrice(symbol, daysBack) {
+  return new Promise((resolve, reject) => {
+    // Yahoo Finance API for historical data
+    // Indian stocks need .NS suffix
+    const yahooSymbol = symbol.endsWith('.NS') ? symbol : `${symbol}.NS`;
+    
+    const endDate = Math.floor(Date.now() / 1000);
+    const startDate = Math.floor((Date.now() - (daysBack * 24 * 60 * 60 * 1000)) / 1000);
+    
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${startDate}&period2=${endDate}&interval=1d`;
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    };
+    
+    https.get(url, options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json && json.chart && json.chart.result && json.chart.result[0]) {
+            const result = json.chart.result[0];
+            const timestamps = result.timestamp;
+            const closes = result.indicators.quote[0].close;
+            
+            if (timestamps && timestamps.length > 0 && closes && closes.length > 0) {
+              // Get the oldest price in the range (closest to daysBack)
+              const oldestIndex = 0;
+              const price = closes[oldestIndex];
+              resolve(price);
+            } else {
+              resolve(null);
+            }
+          } else {
+            resolve(null);
+          }
+        } catch (err) {
+          console.warn(`Yahoo Finance fetch failed for ${yahooSymbol}:`, err.message);
+          resolve(null);
+        }
+      });
+    }).on('error', (err) => {
+      console.warn(`Yahoo Finance request failed for ${yahooSymbol}:`, err.message);
+      resolve(null);
+    });
   });
 }
 
@@ -710,6 +761,140 @@ async function handleApiPortfolio(req, res) {
   }
 }
 
+async function fetchNavHistoryForDate(codes, targetDate, maxLookbackDays = 10) {
+  const baseDate = new Date(targetDate);
+  const missing = new Set(codes.map((c) => String(c)));
+  const result = new Map();
+
+  for (let i = 0; i < maxLookbackDays && missing.size; i++) {
+    const attempt = new Date(baseDate);
+    attempt.setDate(baseDate.getDate() - i);
+    const dateStr = attempt.toISOString().slice(0, 10);
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const txt = await fetchAmfiHistory(dateStr);
+      const map = buildHistoryMap(JSON.parse(txt));
+      missing.forEach((code) => {
+        const nav = map.get(String(code));
+        if (nav) {
+          result.set(String(code), nav);
+          missing.delete(code);
+        }
+      });
+    } catch (e) {
+      console.warn(`Failed to fetch NAV history for ${dateStr}:`, e.message);
+    }
+  }
+
+  return result;
+}
+
+async function handleApiPerformance(req, res) {
+  try {
+    const cfg = sheetConfigFromRequest(req);
+    const [holdings, stocks, amfiTxt] = await Promise.all([
+      loadHoldings(cfg),
+      loadStocks(cfg),
+      fetchAmfiTxt(),
+    ]);
+
+    // Process mutual funds
+    const navs = parseNavMap(amfiTxt);
+    const mfCodes = holdings.map((h) => String(h.amfiCode));
+    
+    // Calculate dates for 7 and 30 days ago
+    const today = new Date();
+    const date7d = new Date(today);
+    date7d.setDate(today.getDate() - 7);
+    const date30d = new Date(today);
+    date30d.setDate(today.getDate() - 30);
+
+    // Fetch historical NAVs
+    const [nav7Map, nav30Map] = await Promise.all([
+      fetchNavHistoryForDate(mfCodes, date7d, 10),
+      fetchNavHistoryForDate(mfCodes, date30d, 30),
+    ]);
+
+    const mutualFunds = holdings.map((h) => {
+      const code = String(h.amfiCode);
+      const currentNav = navs[code] ? parseFloat(navs[code]) : null;
+      const nav7d = nav7Map.get(code) ?? null;
+      const nav30d = nav30Map.get(code) ?? null;
+
+      let change7d = null;
+      let change30d = null;
+
+      if (currentNav && nav7d && nav7d > 0) {
+        change7d = ((currentNav - nav7d) / nav7d) * 100;
+      }
+      if (currentNav && nav30d && nav30d > 0) {
+        change30d = ((currentNav - nav30d) / nav30d) * 100;
+      }
+
+      return {
+        name: h.schemeName,
+        amfiCode: h.amfiCode,
+        unitBalance: h.unitBalance,
+        investedAmount: h.investmentAmount,
+        currentNav,
+        nav7d,
+        change7d,
+        nav30d,
+        change30d,
+      };
+    });
+
+    // Process stocks - fetch historical prices from Yahoo Finance API
+    const stocksWithHistory = await Promise.all(stocks.map(async (s) => {
+      const currentPrice = s.currentPrice;
+      
+      // Fetch historical prices from Yahoo Finance
+      const price7d = await fetchYahooHistoricalPrice(s.symbol, 7);
+      const price30d = await fetchYahooHistoricalPrice(s.symbol, 30);
+      
+      // Calculate percentage changes
+      let change7d = null;
+      let change30d = null;
+      
+      if (currentPrice && price7d && price7d > 0) {
+        change7d = ((currentPrice - price7d) / price7d) * 100;
+      }
+      if (currentPrice && price30d && price30d > 0) {
+        change30d = ((currentPrice - price30d) / price30d) * 100;
+      }
+      
+      return {
+        symbol: s.symbol,
+        quantity: s.quantity,
+        investedAmount: s.quantity * (s.avgPrice || 0),
+        currentPrice,
+        price7d,
+        change7d,
+        price30d,
+        change30d,
+      };
+    }));
+
+    const body = JSON.stringify({
+      mutualFunds,
+      stocks: stocksWithHistory,
+      asOf: today.toISOString(),
+      dates: {
+        current: today.toISOString().slice(0, 10),
+        day7: date7d.toISOString().slice(0, 10),
+        day30: date30d.toISOString().slice(0, 10),
+      },
+    });
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(body);
+  } catch (err) {
+    console.error(err);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Server error');
+  }
+}
+
 function contentType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   if (ext === '.html') return 'text/html';
@@ -760,6 +945,9 @@ createServer((req, res) => {
   }
   if (req.url.startsWith('/api/portfolio')) {
     return handleApiPortfolio(req, res);
+  }
+  if (req.url.startsWith('/api/performance')) {
+    return handleApiPerformance(req, res);
   }
   if (req.url.startsWith('/api/stocks') && req.method === 'GET') {
     return handleApiStocks(req, res);

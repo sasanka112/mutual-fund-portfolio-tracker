@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance Tracker</title>
+  <meta name="theme-color" content="#0b1021">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="shell header">
+    <div class="logo">Portfolio Dashboard</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="mutual-funds.html">Mutual Funds</a>
+      <a href="stocks.html">Stocks</a>
+      <a href="compare.html">Compare</a>
+      <a href="performance.html" class="active">Performance</a>
+      <a href="update.html">Update Holdings</a>
+      <a href="update-stocks.html">Update Stocks</a>
+    </nav>
+    <button class="ghost" id="theme-toggle" aria-label="Toggle theme">🌞</button>
+  </header>
+
+  <main>
+    <section class="shell hero" id="top">
+      <div class="hero-controls">
+        <h1>Performance Tracker</h1>
+        <p class="muted">7-day and 30-day performance for Mutual Funds and Stocks</p>
+        <button class="primary" id="refresh-btn">Refresh Data</button>
+        <span id="last-refresh">Last refresh: —</span>
+        <span class="muted" id="status-text"></span>
+        <div class="loading-spinner" id="loading-spinner"></div>
+      </div>
+    </section>
+
+    <section class="shell summary" id="portfolio-summary">
+      <div class="section-head">
+        <p class="eyebrow">Portfolio Summary</p>
+        <h2>Total Performance (7-day & 30-day)</h2>
+      </div>
+      
+      <div class="summary-category">
+        <p class="category-label">Combined (MF + Stocks)</p>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="muted">Current Value</p>
+            <h3 id="combined-current">₹0</h3>
+            <span class="muted" id="combined-invested">Invested: ₹0</span>
+            <span class="muted" id="combined-current-pct"></span>
+          </div>
+          <div class="summary-card">
+            <p class="muted">7-Day</p>
+            <h3 id="combined-value7d">₹0</h3>
+            <span class="muted" id="combined-change7d">₹0</span>
+            <span class="muted" id="combined-change7d-pct"></span>
+          </div>
+          <div class="summary-card">
+            <p class="muted">30-Day</p>
+            <h3 id="combined-value30d">₹0</h3>
+            <span class="muted" id="combined-change30d">₹0</span>
+            <span class="muted" id="combined-change30d-pct"></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="summary-category">
+        <p class="category-label">Mutual Funds</p>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="muted">Current Value</p>
+            <h3 id="mf-current">₹0</h3>
+            <span class="muted" id="mf-invested">Invested: ₹0</span>
+            <span class="muted" id="mf-current-pct"></span>
+          </div>
+          <div class="summary-card">
+            <p class="muted">7-Day</p>
+            <h3 id="mf-value7d">₹0</h3>
+            <span class="muted" id="mf-change7d">₹0</span>
+            <span class="muted" id="mf-change7d-pct"></span>
+          </div>
+          <div class="summary-card">
+            <p class="muted">30-Day</p>
+            <h3 id="mf-value30d">₹0</h3>
+            <span class="muted" id="mf-change30d">₹0</span>
+            <span class="muted" id="mf-change30d-pct"></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="summary-category">
+        <p class="category-label">Stocks</p>
+        <div class="summary-grid">
+          <div class="summary-card">
+            <p class="muted">Current Value</p>
+            <h3 id="stock-current">₹0</h3>
+            <span class="muted" id="stock-invested">Invested: ₹0</span>
+            <span class="muted" id="stock-current-pct"></span>
+          </div>
+          <div class="summary-card">
+            <p class="muted">7-Day</p>
+            <h3 id="stock-value7d">₹0</h3>
+            <span class="muted" id="stock-change7d">₹0</span>
+            <span class="muted" id="stock-change7d-pct"></span>
+          </div>
+          <div class="summary-card">
+            <p class="muted">30-Day</p>
+            <h3 id="stock-value30d">₹0</h3>
+            <span class="muted" id="stock-change30d">₹0</span>
+            <span class="muted" id="stock-change30d-pct"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell insights" id="mf-insights">
+      <div class="insight-grid">
+        <article class="insight-card">
+          <p class="muted">Top 10 MF (7-day)</p>
+          <ol id="mf-top7d" class="top-list"></ol>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Bottom 10 MF (7-day)</p>
+          <ol id="mf-bottom7d" class="bottom-list"></ol>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Top 10 MF (30-day)</p>
+          <ol id="mf-top30d" class="top-list"></ol>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Bottom 10 MF (30-day)</p>
+          <ol id="mf-bottom30d" class="bottom-list"></ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell insights" id="stock-insights">
+      <div class="insight-grid">
+        <article class="insight-card">
+          <p class="muted">Top 10 Stocks (7-day)</p>
+          <ol id="stock-top7d" class="top-list"></ol>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Bottom 10 Stocks (7-day)</p>
+          <ol id="stock-bottom7d" class="bottom-list"></ol>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Top 10 Stocks (30-day)</p>
+          <ol id="stock-top30d" class="top-list"></ol>
+        </article>
+        <article class="insight-card">
+          <p class="muted">Bottom 10 Stocks (30-day)</p>
+          <ol id="stock-bottom30d" class="bottom-list"></ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="shell summary" id="mf-performance">
+      <div class="section-head">
+        <p class="eyebrow">Mutual Funds</p>
+        <h2>Performance (7-day & 30-day)</h2>
+      </div>
+      <div class="table-container">
+        <table id="mf-performance-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort-key="name">Scheme Name</th>
+              <th class="sortable numeric" data-sort-key="currentNav">Current NAV</th>
+              <th class="sortable numeric" data-sort-key="nav7d">7-Day NAV</th>
+              <th class="sortable numeric" data-sort-key="change7d">7-Day Change</th>
+              <th class="sortable numeric" data-sort-key="nav30d">30-Day NAV</th>
+              <th class="sortable numeric" data-sort-key="change30d">30-Day Change</th>
+            </tr>
+          </thead>
+          <tbody id="mf-performance-body">
+            <tr><td colspan="6" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="shell summary" id="stock-performance">
+      <div class="section-head">
+        <p class="eyebrow">Stocks</p>
+        <h2>Performance (7-day & 30-day)</h2>
+      </div>
+      <div class="table-container">
+        <table id="stock-performance-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort-key="symbol">Symbol</th>
+              <th class="sortable numeric" data-sort-key="currentPrice">Current Price</th>
+              <th class="sortable numeric" data-sort-key="price7d">7-Day Price</th>
+              <th class="sortable numeric" data-sort-key="change7d">7-Day Change</th>
+              <th class="sortable numeric" data-sort-key="price30d">30-Day Price</th>
+              <th class="sortable numeric" data-sort-key="change30d">30-Day Change</th>
+            </tr>
+          </thead>
+          <tbody id="stock-performance-body">
+            <tr><td colspan="6" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell footer">
+    <span>Built with vanilla HTML, CSS, and JavaScript.</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="performance.js"></script>
+</body>
+</html>

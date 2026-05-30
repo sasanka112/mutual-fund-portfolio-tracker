@@ -384,6 +384,53 @@ body.light .card-body {
   min-height: 90px;
 }
 
+.top-list,
+.bottom-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.top-list li,
+.bottom-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.top-list li:last-child,
+.bottom-list li:last-child {
+  border-bottom: none;
+}
+
+.top-list li .name,
+.bottom-list li .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+  color: var(--text);
+}
+
+.top-list li .value,
+.bottom-list li .value {
+  font-weight: 600;
+  min-width: 70px;
+  text-align: right;
+}
+
+.top-list li .value.positive {
+  color: #4ade80;
+}
+
+.bottom-list li .value.negative {
+  color: #f87171;
+}
+
 .chart-controls {
   margin: 10px 0 12px;
   display: flex;
@@ -415,6 +462,23 @@ body.light .card-body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
+}
+
+.summary-category {
+  margin-bottom: 20px;
+}
+
+.summary-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--accent-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .summary-card {
