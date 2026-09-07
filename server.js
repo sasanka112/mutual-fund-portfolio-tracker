@@ -2,6 +2,9 @@
 // Usage: node server.js
 // Serves static files from this directory and exposes /api/portfolio
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const { createServer } = require('node:http');
 const { readFile, stat, writeFile } = require('node:fs/promises');
 const { createReadStream } = require('node:fs');
@@ -88,13 +91,15 @@ function parseHoldingsCsv(txt) {
   const split = (line) => splitCsv(line, delimiter);
 
   const headers = split(lines[0]);
+  console.log('CSV Headers:', headers);
   const findIdx = (pattern) => headers.findIndex((h) => pattern.test(h));
   const amfiIdx = findIdx(/amf/i);
   const schemeIdx = findIdx(/scheme/i);
   const investIdx = findIdx(/invest/i);
   const unitsIdx = findIdx(/unit/i);
+  console.log('Column indices - AMFI:', amfiIdx, 'Scheme:', schemeIdx, 'Invest:', investIdx, 'Units:', unitsIdx);
 
-  return lines.slice(1).map((line) => {
+  const holdings = lines.slice(1).map((line) => {
     const parts = split(line);
     const amfiCode = amfiIdx >= 0 ? parts[amfiIdx]?.trim().replace(/^"|"$/g, '') : undefined;
     const schemeName = schemeIdx >= 0 ? parts[schemeIdx]?.trim().replace(/^"|"$/g, '') : undefined;
@@ -103,6 +108,10 @@ function parseHoldingsCsv(txt) {
     if (!amfiCode || !schemeName || Number.isNaN(investmentAmount) || Number.isNaN(unitBalance)) return null;
     return { amfiCode, schemeName, investmentAmount, unitBalance };
   }).filter(Boolean);
+  
+  console.log(`Parsed ${holdings.length} holdings from CSV`);
+  console.log('Sample AMFI codes from CSV:', holdings.slice(0, 5).map(h => h.amfiCode));
+  return holdings;
 }
 
 function holdingsToCsv(holdings) {
@@ -241,7 +250,6 @@ function parseStocksCsv(txt) {
   const isinIdx = findIdx(/isin/i);
   const qtyIdx = findIdx(/open qty|qty|quantity/i);
   const avgIdx = findIdx(/avg rate|avg price|avg/i);
-  const currentIdx = findIdx(/closing rate|current/i);
 
   return lines.slice(1).map((line) => {
     const parts = split(line);
@@ -249,21 +257,19 @@ function parseStocksCsv(txt) {
     const isin = isinIdx >= 0 ? parts[isinIdx]?.trim().replace(/^"|"$/g, '') : undefined;
     const quantity = qtyIdx >= 0 ? cleanNumber(parts[qtyIdx]) : NaN;
     const avgPrice = avgIdx >= 0 ? cleanNumber(parts[avgIdx]) : NaN;
-    const currentPrice = currentIdx >= 0 ? cleanNumber(parts[currentIdx]) : undefined;
     if ((!symbol && !isin) || Number.isNaN(quantity) || Number.isNaN(avgPrice)) return null;
     return {
       symbol,
       isin,
       quantity,
       avgPrice,
-      currentPrice: Number.isNaN(currentPrice) ? avgPrice : currentPrice,
     };
   }).filter(Boolean);
 }
 
 function stocksToCsv(stocks) {
   const delimiter = ',';
-  const headers = ['Scrip Name', 'Scrip Code', 'Symbol', 'ISIN', 'Scrip Opt', 'Open Qty', 'Avg Rate', 'Open Amt', 'Closing Rate Exchange', '', ''];
+  const headers = ['Scrip Name', 'Scrip Code', 'Symbol', 'ISIN', 'Scrip Opt', 'Open Qty', 'Avg Rate', 'Open Amt'];
   const rows = stocks.map((s) => [
     s.symbol || '',
     '',
@@ -273,9 +279,6 @@ function stocksToCsv(stocks) {
     Number(s.quantity).toFixed(0),
     Number(s.avgPrice).toFixed(2),
     (Number(s.quantity) * Number(s.avgPrice)).toFixed(2),
-    s.currentPrice != null ? Number(s.currentPrice).toFixed(2) : '',
-    '',
-    '',
   ]);
   return [headers.join(delimiter), ...rows.map((r) => r.join(delimiter))].join('\n');
 }
@@ -305,20 +308,17 @@ function parseStocksRows(rows) {
   const isinIdx = findIdx(/isin/i);
   const qtyIdx = findIdx(/open qty|qty|quantity/i);
   const avgIdx = findIdx(/avg rate|avg price|avg/i);
-  const currentIdx = findIdx(/closing rate|current/i);
   return rows.slice(1).map((row) => {
     const symbol = symbolIdx >= 0 ? String(row[symbolIdx] || '').trim() : undefined;
     const isin = isinIdx >= 0 ? String(row[isinIdx] || '').trim() : undefined;
     const quantity = qtyIdx >= 0 ? cleanNumber(row[qtyIdx]) : NaN;
     const avgPrice = avgIdx >= 0 ? cleanNumber(row[avgIdx]) : NaN;
-    const currentPrice = currentIdx >= 0 ? cleanNumber(row[currentIdx]) : undefined;
     if ((!symbol && !isin) || Number.isNaN(quantity) || Number.isNaN(avgPrice)) return null;
     return {
       symbol,
       isin,
       quantity,
       avgPrice,
-      currentPrice: Number.isNaN(currentPrice) ? avgPrice : currentPrice,
     };
   }).filter(Boolean);
 }
@@ -388,8 +388,10 @@ async function fetchPrevNavMap(codes, maxLookbackDays = 30) {
 
 function fetchAmfiTxt() {
   return new Promise((resolve, reject) => {
+    console.log(`Fetching current NAV data from AMFI: ${AMFI_URL}`);
     https
       .get(AMFI_URL, (res) => {
+        console.log(`AMFI response status: ${res.statusCode}`);
         if (res.statusCode !== 200) {
           reject(new Error(`AMFI request failed with ${res.statusCode}`));
           res.resume();
@@ -398,17 +400,25 @@ function fetchAmfiTxt() {
         let data = '';
         res.setEncoding('utf8');
         res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => resolve(data));
+        res.on('end', () => {
+          console.log(`✓ Successfully fetched AMFI NAV data (${data.length} characters)`);
+          resolve(data);
+        });
       })
-      .on('error', reject);
+      .on('error', (err) => {
+        console.log(`✗ Failed to fetch AMFI NAV data:`, err.message);
+        reject(err);
+      });
   });
 }
 
 function fetchAmfiHistory(dateStr) {
   const url = `${AMFI_HISTORY_URL}${encodeURIComponent(dateStr)}`;
+  console.log(`Fetching AMFI history for date: ${dateStr} from ${url}`);
   return new Promise((resolve, reject) => {
     https
       .get(url, (res) => {
+        console.log(`AMFI history response status for ${dateStr}: ${res.statusCode}`);
         if (res.statusCode !== 200) {
           reject(new Error(`AMFI history request failed with ${res.statusCode}`));
           res.resume();
@@ -417,24 +427,63 @@ function fetchAmfiHistory(dateStr) {
         let data = '';
         res.setEncoding('utf8');
         res.on('data', (chunk) => (data += chunk));
-        res.on('end', () => resolve(data));
+        res.on('end', () => {
+          console.log(`✓ Successfully fetched AMFI history for ${dateStr} (${data.length} characters)`);
+          resolve(data);
+        });
       })
-      .on('error', reject);
+      .on('error', (err) => {
+        console.log(`✗ Failed to fetch AMFI history for ${dateStr}:`, err.message);
+        reject(err);
+      });
   });
 }
 
 function parseNavMap(txt) {
   const navs = {};
   const lines = txt.split(/\r?\n/);
+  console.log(`Total lines in AMFI data: ${lines.length}`);
+  console.log('First 5 lines:', lines.slice(0, 5));
+  
+  let validLines = 0;
+  let skippedLines = 0;
+  let dataStarted = false;
+  
   for (const line of lines) {
-    if (!line.includes(';')) continue;
+    // Skip header and empty lines
+    if (!line.includes(';') || line.trim() === '' || line.includes('Scheme Code')) {
+      skippedLines++;
+      continue;
+    }
+    
     const parts = line.split(';');
-    if (parts.length < 6) continue;
-    const schemeCode = parts[0];
+    if (parts.length < 6) {
+      skippedLines++;
+      continue;
+    }
+    
+    // Skip category/fund house lines (they don't have numeric scheme codes)
+    const schemeCode = parts[0].trim();
+    if (!schemeCode || isNaN(parseInt(schemeCode))) {
+      skippedLines++;
+      continue;
+    }
+    
     const nav = parseFloat(parts[4]);
-    if (!Number.isFinite(nav)) continue;
+    if (!Number.isFinite(nav)) {
+      skippedLines++;
+      continue;
+    }
+    
     navs[schemeCode] = nav;
+    validLines++;
+    dataStarted = true;
   }
+  
+  console.log(`Valid lines: ${validLines}, Skipped lines: ${skippedLines}`);
+  console.log(`Parsed ${Object.keys(navs).length} NAV entries from AMFI data`);
+  console.log('Sample AMFI codes from NAV data:', Object.keys(navs).slice(0, 5));
+  console.log('Sample NAV values:', Object.entries(navs).slice(0, 3).map(([k,v]) => `${k}: ${v}`));
   return navs;
 }
 
@@ -455,12 +504,13 @@ async function buildCompareCache() {
   const holdings = await loadHoldings();
   const codes = holdings.map((h) => String(h.amfiCode));
 
-  // today NAVs
-  const todayTxt = await fetchAmfiTxt();
-  const todayMap = parseNavMap(todayTxt);
+  // today NAVs - use AMFI history API for consistency
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const todayTxt = await fetchAmfiHistory(todayStr);
+  const todayMap = buildHistoryMap(JSON.parse(todayTxt));
 
   // history dates: 7, 14, 30 days back (with per-code fallback up to 30 days prior)
-  const today = new Date();
   const baseDates = [7, 14, 30].map((d) => {
     const tmp = new Date(today);
     tmp.setDate(tmp.getDate() - d);
@@ -494,7 +544,7 @@ async function buildCompareCache() {
 
   const rows = holdings.map((h) => {
     const code = String(h.amfiCode);
-    const todayNav = todayMap[code] ? parseFloat(todayMap[code]) : null;
+    const todayNav = todayMap.get(code) ?? null;
     const nav7 = historyMaps[0].get(code) ?? null;
     const nav14 = historyMaps[1].get(code) ?? null;
     const nav30 = historyMaps[2].get(code) ?? null;
@@ -584,26 +634,47 @@ async function handleUpdateHoldings(req, res) {
 
 async function handleApiStocks(req, res) {
   try {
+    console.log('=== /api/stocks called ===');
     const cfg = sheetConfigFromRequest(req);
     const stocks = await loadStocks(cfg);
-    // Try to fetch live prices from NSE
-    const stocksWithPrices = await Promise.all(stocks.map(async (stock) => {
-      if (!stock.symbol) return stock;
+    console.log(`Loaded ${stocks.length} stocks from CSV`);
+    console.log(`Fetching live prices (no delays)`);
+    
+    // Always fetch live prices from API without delays
+    const stocksWithPrices = [];
+    for (let i = 0; i < stocks.length; i++) {
+      const stock = stocks[i];
+      const serialNo = i + 1;
+      
+      if (!stock.symbol) {
+        console.log(`[${serialNo}/${stocks.length}] Skipping stock without symbol: ${stock.isin || 'unknown'}`);
+        stocksWithPrices.push({ ...stock, currentPrice: null });
+        continue;
+      }
+      
+      console.log(`[${serialNo}/${stocks.length}] Fetching price for ${stock.symbol}`);
+      
       try {
         const price = await fetchNsePrice(stock.symbol);
-        return { ...stock, currentPrice: price || stock.currentPrice };
+        stocksWithPrices.push({ ...stock, currentPrice: price });
+        // No delay between stocks
       } catch (err) {
-        console.warn(`Failed to fetch price for ${stock.symbol}:`, err.message);
-        return stock;
+        console.warn(`[${serialNo}/${stocks.length}] Failed to fetch price for ${stock.symbol}:`, err.message);
+        stocksWithPrices.push({ ...stock, currentPrice: null });
       }
-    }));
-
+    }
+    
+    const livePriceCount = stocksWithPrices.filter(s => s.currentPrice !== null).length;
+    console.log(`Live prices: ${livePriceCount}, Failed: ${stocks.length - livePriceCount}`);
+    
     // Update stocks file with new prices
     await writeFile(STOCKS_FILE, stocksToCsv(stocksWithPrices), 'utf8');
-
+    console.log('Updated stocks CSV file');
+    
     const body = JSON.stringify({ stocks: stocksWithPrices });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(body);
+    console.log('=== /api/stocks completed ===');
   } catch (err) {
     console.error(err);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -611,83 +682,203 @@ async function handleApiStocks(req, res) {
   }
 }
 
+// Simple in-memory cache for stock prices with 1-hour expiry (longer since we have delays)
+const stockPriceCache = new Map();
+const STOCK_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
 function fetchNsePrice(symbol) {
   return new Promise((resolve, reject) => {
-    // NSE provides quote data via their API
-    const url = `https://www.nseindia.com/api/quote-equity?symbol=${encodeURIComponent(symbol)}`;
-    const options = {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': '*/*',
-      },
-    };
+    // Check cache first
+    const cached = stockPriceCache.get(symbol);
+    if (cached && Date.now() - cached.timestamp < STOCK_CACHE_TTL) {
+      console.log(`✓ Using cached price for ${symbol}: ₹${cached.price}`);
+      resolve(cached.price);
+      return;
+    }
+
+    // Use Yahoo Finance with proper delays
+    fetchYahooPrice(symbol)
+      .then(resolve)
+      .catch(() => resolve(null));
+  });
+}
+
+function fetchYahooPrice(symbol) {
+  return new Promise((resolve, reject) => {
+    // Try multiple symbol formats for Yahoo Finance
+    const formats = [
+      symbol.endsWith('.NS') ? symbol : `${symbol}.NS`, // Standard .NS format
+      symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol, // Without .NS
+      symbol.endsWith('.NS') ? symbol.replace('.NS', '.BO') : `${symbol}.BO`, // Try .BO (Bombay)
+    ];
     
-    https.get(url, options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json && json.priceInfo && json.priceInfo.lastPrice) {
-            resolve(parseFloat(json.priceInfo.lastPrice));
-          } else {
-            resolve(null);
+    let formatIndex = 0;
+    
+    function tryFormat() {
+      if (formatIndex >= formats.length) {
+        console.log(`✗ All Yahoo formats failed for ${symbol}`);
+        reject(new Error('All formats failed'));
+        return;
+      }
+      
+      const yahooSymbol = formats[formatIndex];
+      const jsonUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
+      
+      console.log(`Trying Yahoo format ${formatIndex + 1}/${formats.length} for ${symbol}: ${yahooSymbol}`);
+      
+      // Add browser-like headers to avoid detection
+      const options = {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Referer': 'https://finance.yahoo.com/',
+          'Origin': 'https://finance.yahoo.com',
+        },
+      };
+      
+      https.get(jsonUrl, options, (res) => {
+        let data = '';
+        console.log(`Yahoo response status for ${yahooSymbol}: ${res.statusCode}`);
+        
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode === 429) {
+            console.log(`✗ Yahoo rate limited for ${symbol}`);
+            reject(new Error('Rate limited'));
+            return;
           }
-        } catch (err) {
-          reject(err);
-        }
+          
+          if (res.statusCode === 404) {
+            console.log(`✗ Yahoo format ${formatIndex + 1} not found (404) for ${symbol}`);
+            formatIndex++;
+            tryFormat();
+            return;
+          }
+          
+          try {
+            const json = JSON.parse(data);
+            if (json && json.chart && json.chart.result && json.chart.result[0] && 
+                json.chart.result[0].meta && json.chart.result[0].meta.regularMarketPrice) {
+              const price = parseFloat(json.chart.result[0].meta.regularMarketPrice);
+              console.log(`✓ Yahoo succeeded for ${symbol} (format ${formatIndex + 1}): ₹${price}`);
+              stockPriceCache.set(symbol, { price, timestamp: Date.now() });
+              resolve(price);
+            } else {
+              console.log(`✗ Yahoo format ${formatIndex + 1} no data for ${symbol}`);
+              formatIndex++;
+              tryFormat();
+            }
+          } catch (err) {
+            console.log(`✗ Yahoo parse error for ${symbol} (format ${formatIndex + 1}):`, err.message);
+            formatIndex++;
+            tryFormat();
+          }
+        });
+      }).on('error', (err) => {
+        console.log(`✗ Yahoo network error for ${symbol} (format ${formatIndex + 1}):`, err.message);
+        formatIndex++;
+        tryFormat();
       });
-    }).on('error', reject);
+    }
+    
+    tryFormat();
   });
 }
 
 function fetchYahooHistoricalPrice(symbol, daysBack) {
   return new Promise((resolve, reject) => {
-    // Yahoo Finance API for historical data
-    // Indian stocks need .NS suffix
-    const yahooSymbol = symbol.endsWith('.NS') ? symbol : `${symbol}.NS`;
+    // Try multiple symbol formats for Yahoo Finance
+    const formats = [
+      symbol.endsWith('.NS') ? symbol : `${symbol}.NS`, // Standard .NS format
+      symbol.endsWith('.NS') ? symbol.replace('.NS', '') : symbol, // Without .NS
+      symbol.endsWith('.NS') ? symbol.replace('.NS', '.BO') : `${symbol}.BO`, // Try .BO (Bombay)
+    ];
+    
+    let formatIndex = 0;
     
     const endDate = Math.floor(Date.now() / 1000);
     const startDate = Math.floor((Date.now() - (daysBack * 24 * 60 * 60 * 1000)) / 1000);
     
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${startDate}&period2=${endDate}&interval=1d`;
-    const options = {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    };
-    
-    https.get(url, options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json && json.chart && json.chart.result && json.chart.result[0]) {
-            const result = json.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
-            
-            if (timestamps && timestamps.length > 0 && closes && closes.length > 0) {
-              // Get the oldest price in the range (closest to daysBack)
-              const oldestIndex = 0;
-              const price = closes[oldestIndex];
-              resolve(price);
-            } else {
-              resolve(null);
-            }
-          } else {
+    function tryFormat() {
+      if (formatIndex >= formats.length) {
+        console.log(`✗ All Yahoo historical formats failed for ${symbol}`);
+        resolve(null);
+        return;
+      }
+      
+      const yahooSymbol = formats[formatIndex];
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=${startDate}&period2=${endDate}&interval=1d`;
+      
+      console.log(`Trying Yahoo historical format ${formatIndex + 1}/${formats.length} for ${symbol}: ${yahooSymbol}`);
+      
+      // Add browser-like headers to avoid detection
+      const options = {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Referer': 'https://finance.yahoo.com/',
+          'Origin': 'https://finance.yahoo.com',
+        },
+      };
+      
+      https.get(url, options, (res) => {
+        let data = '';
+        console.log(`Yahoo historical response status for ${yahooSymbol}: ${res.statusCode}`);
+        
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode === 429) {
+            console.log(`✗ Yahoo historical rate limited for ${symbol}`);
             resolve(null);
+            return;
           }
-        } catch (err) {
-          console.warn(`Yahoo Finance fetch failed for ${yahooSymbol}:`, err.message);
-          resolve(null);
-        }
+          
+          if (res.statusCode === 404) {
+            console.log(`✗ Yahoo historical format ${formatIndex + 1} not found (404) for ${symbol}`);
+            formatIndex++;
+            tryFormat();
+            return;
+          }
+          
+          try {
+            const json = JSON.parse(data);
+            if (json && json.chart && json.chart.result && json.chart.result[0]) {
+              const result = json.chart.result[0];
+              const timestamps = result.timestamp;
+              const closes = result.indicators.quote[0].close;
+              
+              if (timestamps && timestamps.length > 0 && closes && closes.length > 0) {
+                // Get the oldest price in the range (closest to daysBack)
+                const oldestIndex = 0;
+                const price = closes[oldestIndex];
+                console.log(`✓ Yahoo historical succeeded for ${symbol} (format ${formatIndex + 1}): ₹${price}`);
+                resolve(price);
+                return;
+              }
+            }
+            console.log(`✗ Yahoo historical format ${formatIndex + 1} no data for ${symbol}`);
+            formatIndex++;
+            tryFormat();
+          } catch (err) {
+            console.log(`✗ Yahoo historical parse error for ${symbol} (format ${formatIndex + 1}):`, err.message);
+            formatIndex++;
+            tryFormat();
+          }
+        });
+      }).on('error', (err) => {
+        console.log(`✗ Yahoo historical network error for ${symbol} (format ${formatIndex + 1}):`, err.message);
+        formatIndex++;
+        tryFormat();
       });
-    }).on('error', (err) => {
-      console.warn(`Yahoo Finance request failed for ${yahooSymbol}:`, err.message);
-      resolve(null);
-    });
+    }
+    
+    tryFormat();
   });
 }
 
@@ -731,31 +922,71 @@ async function handleUpdateStocks(req, res) {
 
 async function handleApiPortfolio(req, res) {
   try {
+    console.log('=== /api/portfolio called ===');
     const cfg = sheetConfigFromRequest(req);
-    const [holdings, amfiTxt] = await Promise.all([
-      loadHoldings(cfg),
-      fetchAmfiTxt(),
-    ]);
-    const navs = parseNavMap(amfiTxt);
+    const holdings = await loadHoldings(cfg);
+    console.log(`Loaded ${holdings.length} mutual fund holdings`);
+    
+    // Use AMFI history API for current NAVs (it's working reliably)
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    console.log(`Fetching current NAVs for ${todayStr} from AMFI history API`);
+    
+    const amfiHistoryTxt = await fetchAmfiHistory(todayStr);
+    const amfiHistoryJson = JSON.parse(amfiHistoryTxt);
+    const currentNavMap = buildHistoryMap(amfiHistoryJson);
+    const navs = Object.fromEntries(currentNavMap.entries());
+    
+    console.log(`Parsed ${Object.keys(navs).length} current NAV entries from AMFI history API`);
+    
     const codes = holdings.map((h) => String(h.amfiCode));
+    console.log(`Looking for NAVs for ${codes.length} AMFI codes`);
+    
+    // Debug: show first few codes and check if they exist in NAV data
+    console.log('Sample holdings codes:', codes.slice(0, 5));
+    console.log('Sample NAV codes:', Object.keys(navs).slice(0, 5));
+    console.log('First code exists in NAV?', codes[0] in navs);
+    
+    // Detailed debugging for first few holdings
+    console.log('Detailed code matching check:');
+    holdings.slice(0, 3).forEach(h => {
+      const code = String(h.amfiCode);
+      const exists = code in navs;
+      console.log(`  ${code} (${h.schemeName.substring(0, 30)}): ${exists ? '✓ FOUND' : '✗ NOT FOUND'}`);
+      if (!exists) {
+        // Try to find similar codes
+        const similar = Object.keys(navs).filter(k => k.includes(code) || code.includes(k));
+        if (similar.length > 0) {
+          console.log(`    Similar codes found: ${similar.slice(0, 3).join(', ')}`);
+        }
+      }
+    });
+    
     let prevNavs = {};
     try {
       const prevNavMap = await fetchPrevNavMap(codes, 30);
       prevNavs = Object.fromEntries(prevNavMap.entries());
+      console.log(`Found ${Object.keys(prevNavs).length} previous NAVs`);
       // Fallback: if nothing returned, use current navs so UI shows 0 change instead of missing
       if (!Object.keys(prevNavs).length) {
+        console.log('No previous NAVs found, using current NAVs as fallback');
         prevNavs = { ...navs };
       }
     } catch (e) {
-      console.warn('Prev NAV lookup failed', e);
+      console.warn('Prev NAV lookup failed:', e.message);
       // Fallback to current navs to avoid missing UI
       prevNavs = { ...navs };
     }
+    
+    const matchedCount = holdings.filter(h => navs[h.amfiCode]).length;
+    console.log(`Matched ${matchedCount} out of ${holdings.length} holdings with current NAVs`);
+    
     const body = JSON.stringify({ holdings, navs, prevNavs });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(body);
+    console.log('=== /api/portfolio completed ===');
   } catch (err) {
-    console.error(err);
+    console.error('Error in /api/portfolio:', err.message);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Server error');
   }
@@ -792,18 +1023,22 @@ async function fetchNavHistoryForDate(codes, targetDate, maxLookbackDays = 10) {
 async function handleApiPerformance(req, res) {
   try {
     const cfg = sheetConfigFromRequest(req);
-    const [holdings, stocks, amfiTxt] = await Promise.all([
+    const [holdings, stocks] = await Promise.all([
       loadHoldings(cfg),
       loadStocks(cfg),
-      fetchAmfiTxt(),
     ]);
 
-    // Process mutual funds
-    const navs = parseNavMap(amfiTxt);
+    // Process mutual funds - use AMFI history API for current NAVs
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const amfiHistoryTxt = await fetchAmfiHistory(todayStr);
+    const amfiHistoryJson = JSON.parse(amfiHistoryTxt);
+    const currentNavMap = buildHistoryMap(amfiHistoryJson);
+    const navs = Object.fromEntries(currentNavMap.entries());
+    
     const mfCodes = holdings.map((h) => String(h.amfiCode));
     
     // Calculate dates for 7 and 30 days ago
-    const today = new Date();
     const date7d = new Date(today);
     date7d.setDate(today.getDate() - 7);
     const date30d = new Date(today);
@@ -844,9 +1079,10 @@ async function handleApiPerformance(req, res) {
       };
     });
 
-    // Process stocks - fetch historical prices from Yahoo Finance API
+    // Process stocks - fetch current and historical prices from Yahoo Finance API
     const stocksWithHistory = await Promise.all(stocks.map(async (s) => {
-      const currentPrice = s.currentPrice;
+      // Fetch current price from Yahoo Finance
+      const currentPrice = await fetchNsePrice(s.symbol);
       
       // Fetch historical prices from Yahoo Finance
       const price7d = await fetchYahooHistoricalPrice(s.symbol, 7);

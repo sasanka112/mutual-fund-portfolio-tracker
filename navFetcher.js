@@ -5,7 +5,7 @@ import https from 'node:https';
 import { fileURLToPath } from 'node:url';
 import xlsx from 'xlsx';
 
-const AMFI_URL = 'https://portal.amfiindia.com/spages/NAVAll.txt';
+const AMFI_HISTORY_URL = 'https://www.amfiindia.com/api/nav-history?query_type=all_for_date&from_date=';
 const EXCEL_PATH = 'C:/Users/Sasanka_Talukder/OneDrive - Dell Technologies/Pictures/sasanka/personal/Bank info/mutual fund/4/MUTUAL FUND ACCIUNT.xlsx';
 const SHEET_NAME = 'Sheet1';
 
@@ -33,7 +33,8 @@ function readSchemeCodes(filePath, sheetName) {
     .map((code) => String(code));
 }
 
-function fetchAmfiTxt(url) {
+function fetchAmfiHistory(dateStr) {
+  const url = `${AMFI_HISTORY_URL}${encodeURIComponent(dateStr)}`;
   return new Promise((resolve, reject) => {
     https
       .get(url, (res) => {
@@ -51,25 +52,29 @@ function fetchAmfiTxt(url) {
   });
 }
 
-function parseNavMap(txt) {
+function buildHistoryMap(payload) {
   const map = new Map();
-  const lines = txt.split(/\r?\n/);
-  for (const line of lines) {
-    if (!line.includes(';')) continue;
-    const parts = line.split(';');
-    if (parts.length < 6) continue;
-    const schemeCode = parts[0];
-    const nav = parts[4]; // latest NAV
-    map.set(schemeCode, nav);
-  }
+  if (!payload || !Array.isArray(payload.data)) return map;
+  payload.data.forEach((mf) => {
+    (mf.schemes || []).forEach((scheme) => {
+      (scheme.navs || []).forEach((nav) => {
+        if (nav.SD_ID && nav.hNAV_Amt) map.set(String(nav.SD_ID), parseFloat(nav.hNAV_Amt));
+      });
+    });
+  });
   return map;
 }
 
 async function main() {
   try {
     const mySchemeCodes = readSchemeCodes(EXCEL_PATH, SHEET_NAME);
-    const amfiTxt = await fetchAmfiTxt(AMFI_URL);
-    const schemeToNav = parseNavMap(amfiTxt);
+    
+    // Use today's date for current NAVs
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const amfiHistoryTxt = await fetchAmfiHistory(todayStr);
+    const amfiHistoryJson = JSON.parse(amfiHistoryTxt);
+    const schemeToNav = buildHistoryMap(amfiHistoryJson);
 
     mySchemeCodes.forEach((scheme) => {
       const nav = schemeToNav.get(scheme) || 'NOT FOUND';
