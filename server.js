@@ -14,6 +14,7 @@ const https = require('node:https');
 const ROOT = __dirname;
 const PORT = process.env.PORT || 3000;
 const AMFI_URL = 'https://portal.amfiindia.com/spages/NAVAll.txt';
+const AMFI_LATEST_URL = 'https://api.mfapi.in/mf/latest';
 const AMFI_HISTORY_URL = 'https://www.amfiindia.com/api/nav-history?query_type=all_for_date&from_date=';
 const HOLDINGS_CSV = path.join(ROOT, 'mf_detail.csv');
 const COMPARE_CACHE = path.join(ROOT, 'compare-cache.json');
@@ -434,6 +435,32 @@ function fetchAmfiHistory(dateStr) {
       })
       .on('error', (err) => {
         console.log(`✗ Failed to fetch AMFI history for ${dateStr}:`, err.message);
+        reject(err);
+      });
+  });
+}
+
+function fetchAmfiLatest() {
+  console.log(`Fetching AMFI latest NAV from ${AMFI_LATEST_URL}`);
+  return new Promise((resolve, reject) => {
+    https
+      .get(AMFI_LATEST_URL, (res) => {
+        console.log(`AMFI latest response status: ${res.statusCode}`);
+        if (res.statusCode !== 200) {
+          reject(new Error(`AMFI latest request failed with ${res.statusCode}`));
+          res.resume();
+          return;
+        }
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => {
+          console.log(`✓ Successfully fetched AMFI latest NAV (${data.length} characters)`);
+          resolve(data);
+        });
+      })
+      .on('error', (err) => {
+        console.log(`✗ Failed to fetch AMFI latest NAV:`, err.message);
         reject(err);
       });
   });
@@ -1028,13 +1055,24 @@ async function handleApiPerformance(req, res) {
       loadStocks(cfg),
     ]);
 
-    // Process mutual funds - use AMFI history API for current NAVs
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
-    const amfiHistoryTxt = await fetchAmfiHistory(todayStr);
-    const amfiHistoryJson = JSON.parse(amfiHistoryTxt);
-    const currentNavMap = buildHistoryMap(amfiHistoryJson);
-    const navs = Object.fromEntries(currentNavMap.entries());
+    // const amfiHistoryTxt = await fetchAmfiHistory(todayStr);
+    // const amfiHistoryJson = JSON.parse(amfiHistoryTxt);
+    // const currentNavMap = buildHistoryMap(amfiHistoryJson);
+    // const navs = Object.fromEntries(currentNavMap.entries());
+
+    // Process mutual funds - use AMFI latest API for current NAVs
+    const amfiLatestTxt = await fetchAmfiLatest();
+    const amfiLatestJson = JSON.parse(amfiLatestTxt);
+    
+    // Build navs object with schemeCode as key and nav as value
+    const navs = {};
+    amfiLatestJson.forEach(mf => {
+      navs[mf.schemeCode] = mf.nav;
+    });
+    
+    console.log(`Built navs object with ${Object.keys(navs).length} entries from AMFI latest API`);
     
     const mfCodes = holdings.map((h) => String(h.amfiCode));
     
@@ -1055,6 +1093,10 @@ async function handleApiPerformance(req, res) {
       const currentNav = navs[code] ? parseFloat(navs[code]) : null;
       const nav7d = nav7Map.get(code) ?? null;
       const nav30d = nav30Map.get(code) ?? null;
+      
+        console.log(`AMFI response status: ${code} - ${currentNav} - ${nav7d}`);
+        console.log(`AMFI response status: ${h.amfiCode} - ${navs} - ${nav7d}`);
+
 
       let change7d = null;
       let change30d = null;
